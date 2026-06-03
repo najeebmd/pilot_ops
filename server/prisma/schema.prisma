@@ -7,11 +7,20 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum RoleName {
+  STUDENT
+  GUEST
+  INSTRUCTOR
+  STAFF
+  ADMIN
+  OTHER
+}
+
 model User {
-  id            Int       @id @default(autoincrement())
+  id            Int         @id @default(autoincrement())
   first_name    String
   last_name     String
-  email         String    @unique
+  email         String      @unique
   phone         String?
   date_of_birth DateTime?
   address_line1 String?
@@ -20,6 +29,42 @@ model User {
   state         String?
   country       String?
   postal_code   String?
-  date_created  DateTime  @default(now())
-  date_updated  DateTime  @updatedAt
+  date_created  DateTime    @default(now())
+  date_updated  DateTime    @updatedAt
+
+  login         UserLogin?
+  roles         UserRole[]
+}
+
+model Role {
+  id           Int        @id @default(autoincrement())
+  name         RoleName   @unique
+  date_created DateTime   @default(now())
+  date_updated DateTime   @updatedAt
+
+  user_roles   UserRole[]
+}
+
+model UserLogin {
+  id           Int      @id @default(autoincrement())
+  user_id      Int      @unique
+  username     String   @unique
+  password     String
+  date_created DateTime @default(now())
+  date_updated DateTime @updatedAt
+
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model UserRole {
+  id           Int      @id @default(autoincrement())
+  user_id      Int
+  role_id      Int
+  date_created DateTime @default(now())
+  date_updated DateTime @updatedAt
+
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  role         Role     @relation(fields: [role_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, role_id])
 }
