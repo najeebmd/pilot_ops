@@ -4,16 +4,20 @@ import { PrismaLibSQL } from '@prisma/adapter-libsql';
 import { createClient } from '@libsql/client';
 
 // SQLite via libsql adapter (Prisma 7+).
-// To switch to PostgreSQL: remove this file's adapter logic and use the pg adapter,
-// or set DATABASE_URL to a postgres:// connection string and update schema.prisma provider.
+// To switch to PostgreSQL: swap provider in schema.prisma, replace adapter with @prisma/adapter-pg,
+// and update DATABASE_URL to a postgres:// connection string.
+
+const DB_URL = process.env.DATABASE_URL ?? 'file:./dev.db';
 
 export default defineConfig({
   earlyAccess: true,
   schema: path.join('prisma', 'schema.prisma'),
+  datasource: {
+    url: DB_URL,
+  },
   migrate: {
     async adapter() {
-      const url = process.env.DATABASE_URL ?? 'file:./dev.db';
-      const client = createClient({ url: url.replace(/^file:/, 'file:') });
+      const client = createClient({ url: DB_URL });
       return new PrismaLibSQL(client);
     },
   },
