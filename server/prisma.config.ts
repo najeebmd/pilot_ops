@@ -1,7 +1,6 @@
 import path from 'node:path';
 import { defineConfig } from 'prisma/config';
-import { PrismaLibSQL } from '@prisma/adapter-libsql';
-import { createClient } from '@libsql/client';
+import { PrismaLibSql } from '@prisma/adapter-libsql';
 
 // SQLite via libsql adapter (Prisma 7+).
 // To switch to PostgreSQL: swap provider in schema.prisma, replace adapter with @prisma/adapter-pg,
@@ -17,8 +16,7 @@ export default defineConfig({
   },
   migrate: {
     async adapter() {
-      const client = createClient({ url: DB_URL });
-      return new PrismaLibSQL(client);
+      return new PrismaLibSql({ url: DB_URL });
     },
   },
 });

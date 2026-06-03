@@ -13,8 +13,8 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Register route modules here, e.g.:
-// import exampleRouter from './routes/example';
-// app.use('/api/example', exampleRouter);
+import usersRouter from './routes/users';
+
+app.use('/api/users', usersRouter);
 
 export default app;
