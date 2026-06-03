@@ -2,10 +2,13 @@ import { useEffect, useState } from 'react';
 import type { User, UserFormData } from '../types/user';
 import './UserFormModal.css';
 
+interface Role { id: number; name: string; }
+
 const EMPTY: UserFormData = {
   first_name: '', last_name: '', email: '', phone: '',
   date_of_birth: '', address_line1: '', address_line2: '',
   city: '', state: '', country: '', postal_code: '',
+  role_ids: [],
 };
 
 interface Props {
@@ -15,24 +18,35 @@ interface Props {
 }
 
 export default function UserFormModal({ user, onSave, onClose }: Props) {
-  const [form, setForm] = useState<UserFormData>(EMPTY);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [form, setForm]       = useState<UserFormData>(EMPTY);
+  const [roles, setRoles]     = useState<Role[]>([]);
+  const [saving, setSaving]   = useState(false);
+  const [error, setError]     = useState('');
 
+  // Load available roles once
+  useEffect(() => {
+    fetch('/api/roles')
+      .then((r) => r.json())
+      .then(setRoles)
+      .catch(() => {});
+  }, []);
+
+  // Populate form when editing
   useEffect(() => {
     if (user) {
       setForm({
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        phone: user.phone ?? '',
+        first_name:    user.first_name,
+        last_name:     user.last_name,
+        email:         user.email,
+        phone:         user.phone         ?? '',
         date_of_birth: user.date_of_birth ? user.date_of_birth.slice(0, 10) : '',
         address_line1: user.address_line1 ?? '',
         address_line2: user.address_line2 ?? '',
-        city: user.city ?? '',
-        state: user.state ?? '',
-        country: user.country ?? '',
-        postal_code: user.postal_code ?? '',
+        city:          user.city          ?? '',
+        state:         user.state         ?? '',
+        country:       user.country       ?? '',
+        postal_code:   user.postal_code   ?? '',
+        role_ids:      user.roles.map((r) => r.role_id),
       });
     } else {
       setForm(EMPTY);
@@ -41,6 +55,15 @@ export default function UserFormModal({ user, onSave, onClose }: Props) {
 
   function set(field: keyof UserFormData, value: string) {
     setForm((f) => ({ ...f, [field]: value }));
+  }
+
+  function toggleRole(id: number) {
+    setForm((f) => ({
+      ...f,
+      role_ids: f.role_ids.includes(id)
+        ? f.role_ids.filter((r) => r !== id)
+        : [...f.role_ids, id],
+    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -109,6 +132,26 @@ export default function UserFormModal({ user, onSave, onClose }: Props) {
             <div className="field">
               <label>Postal Code</label>
               <input value={form.postal_code ?? ''} onChange={(e) => set('postal_code', e.target.value)} />
+            </div>
+
+            {/* Roles */}
+            <div className="field field-full">
+              <label>Roles</label>
+              <div className="role-checkboxes">
+                {roles.map((role) => {
+                  const checked = form.role_ids.includes(role.id);
+                  return (
+                    <label key={role.id} className={`role-checkbox${checked ? ' role-checkbox--checked' : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleRole(role.id)}
+                      />
+                      {role.name}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </div>
 

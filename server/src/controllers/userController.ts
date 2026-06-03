@@ -6,6 +6,10 @@ const SORTABLE = new Set([
   'city', 'country', 'date_created', 'date_updated',
 ]);
 
+const withRoles = {
+  roles: { include: { role: true } },
+} as const;
+
 export async function getUsers(req: Request, res: Response) {
   const page     = Math.max(1, Number(req.query.page)     || 1);
   const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 10));
@@ -17,6 +21,7 @@ export async function getUsers(req: Request, res: Response) {
       orderBy: { [sortBy]: sortOrder },
       skip: (page - 1) * pageSize,
       take: pageSize,
+      include: withRoles,
     }),
     prisma.user.count(),
   ]);
@@ -26,7 +31,7 @@ export async function getUsers(req: Request, res: Response) {
 
 export async function getUserById(req: Request, res: Response) {
   const id = Number(req.params.id);
-  const user = await prisma.user.findUnique({ where: { id } });
+  const user = await prisma.user.findUnique({ where: { id }, include: withRoles });
   if (!user) {
     res.status(404).json({ message: 'User not found' });
     return;
@@ -47,18 +52,11 @@ export async function createUser(req: Request, res: Response) {
 
   const user = await prisma.user.create({
     data: {
-      first_name,
-      last_name,
-      email,
-      phone,
+      first_name, last_name, email, phone,
       date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
-      address_line1,
-      address_line2,
-      city,
-      state,
-      country,
-      postal_code,
+      address_line1, address_line2, city, state, country, postal_code,
     },
+    include: withRoles,
   });
   res.status(201).json(user);
 }
@@ -68,6 +66,7 @@ export async function updateUser(req: Request, res: Response) {
   const {
     first_name, last_name, email, phone, date_of_birth,
     address_line1, address_line2, city, state, country, postal_code,
+    role_ids,
   } = req.body;
 
   const existing = await prisma.user.findUnique({ where: { id } });
@@ -76,34 +75,35 @@ export async function updateUser(req: Request, res: Response) {
     return;
   }
 
+  // Sync roles if provided
+  if (Array.isArray(role_ids)) {
+    await prisma.userRole.deleteMany({ where: { user_id: id } });
+    if (role_ids.length > 0) {
+      await prisma.userRole.createMany({
+        data: role_ids.map((role_id: number) => ({ user_id: id, role_id })),
+      });
+    }
+  }
+
   const user = await prisma.user.update({
     where: { id },
     data: {
-      first_name,
-      last_name,
-      email,
-      phone,
+      first_name, last_name, email, phone,
       date_of_birth: date_of_birth ? new Date(date_of_birth) : undefined,
-      address_line1,
-      address_line2,
-      city,
-      state,
-      country,
-      postal_code,
+      address_line1, address_line2, city, state, country, postal_code,
     },
+    include: withRoles,
   });
   res.json(user);
 }
 
 export async function deleteUser(req: Request, res: Response) {
   const id = Number(req.params.id);
-
   const existing = await prisma.user.findUnique({ where: { id } });
   if (!existing) {
     res.status(404).json({ message: 'User not found' });
     return;
   }
-
   await prisma.user.delete({ where: { id } });
   res.status(204).send();
 }

@@ -79,6 +79,44 @@
   margin: 0.75rem 0 0;
 }
 
+.role-checkboxes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.role-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #374151;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  user-select: none;
+}
+
+.role-checkbox input[type="checkbox"] { display: none; }
+
+.role-checkbox--checked {
+  background: #ede9fe;
+  border-color: #6d28d9;
+  color: #6d28d9;
+}
+
+.role-checkbox:hover:not(.role-checkbox--checked) {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #f5f3ff;
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;

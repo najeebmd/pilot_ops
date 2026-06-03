@@ -11,38 +11,47 @@ type SortOrder = 'asc' | 'desc';
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
 
-interface Col {
-  key: SortKey;
-  label: string;
-}
+interface Col { key: SortKey; label: string; }
 
 const COLS: Col[] = [
-  { key: 'first_name',   label: 'First Name' },
-  { key: 'last_name',    label: 'Last Name' },
-  { key: 'email',        label: 'Email' },
-  { key: 'phone',        label: 'Phone' },
-  { key: 'city',         label: 'City' },
-  { key: 'country',      label: 'Country' },
-  { key: 'date_created', label: 'Created' },
+  { key: 'first_name', label: 'First Name' },
+  { key: 'last_name',  label: 'Last Name' },
+  { key: 'email',      label: 'Email' },
 ];
 
+const ROLE_COLOURS: Record<string, string> = {
+  STUDENT:    '#dbeafe|#1d4ed8',
+  INSTRUCTOR: '#dcfce7|#15803d',
+  ADMIN:      '#fce7f3|#be185d',
+  STAFF:      '#fef9c3|#a16207',
+  GUEST:      '#f3f4f6|#374151',
+  OTHER:      '#ede9fe|#6d28d9',
+};
+
+function RolePill({ name }: { name: string }) {
+  const [bg, color] = (ROLE_COLOURS[name] ?? '#f3f4f6|#374151').split('|');
+  return (
+    <span className="role-pill" style={{ background: bg, color }}>
+      {name}
+    </span>
+  );
+}
+
 export default function UsersPage() {
-  const [users, setUsers]         = useState<User[]>([]);
-  const [total, setTotal]         = useState(0);
-  const [loading, setLoading]     = useState(true);
+  const [users, setUsers]     = useState<User[]>([]);
+  const [total, setTotal]     = useState(0);
+  const [loading, setLoading] = useState(true);
 
   const [page, setPage]           = useState(1);
   const [pageSize, setPageSize]   = useState(10);
   const [sortBy, setSortBy]       = useState<SortKey>('date_created');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
-  const [viewUser, setViewUser]       = useState<User | null>(null);
-  const [editUser, setEditUser]       = useState<User | null | undefined>(undefined);
+  const [viewUser, setViewUser]         = useState<User | null>(null);
+  const [editUser, setEditUser]         = useState<User | null | undefined>(undefined);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
-  useEffect(() => {
-    load();
-  }, [page, pageSize, sortBy, sortOrder]);
+  useEffect(() => { load(); }, [page, pageSize, sortBy, sortOrder]);
 
   async function load() {
     setLoading(true);
@@ -56,12 +65,8 @@ export default function UsersPage() {
   }
 
   function handleSort(key: SortKey) {
-    if (key === sortBy) {
-      setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
-    } else {
-      setSortBy(key);
-      setSortOrder('asc');
-    }
+    if (key === sortBy) setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
+    else { setSortBy(key); setSortOrder('asc'); }
     setPage(1);
   }
 
@@ -81,9 +86,8 @@ export default function UsersPage() {
     await deleteUser(deleteTarget.id);
     setDeleteTarget(null);
     if (viewUser?.id === deleteTarget.id) setViewUser(null);
-    // Go back a page if we just deleted the last item on this page
-    const newTotal = total - 1;
-    const maxPage = Math.max(1, Math.ceil(newTotal / pageSize));
+    const newTotal  = total - 1;
+    const maxPage   = Math.max(1, Math.ceil(newTotal / pageSize));
     setPage((p) => Math.min(p, maxPage));
     await load();
   }
@@ -114,25 +118,29 @@ export default function UsersPage() {
                   {col.label} <SortIcon col={col.key} />
                 </th>
               ))}
+              <th>Roles</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={COLS.length + 1} className="td-state">Loading…</td></tr>
+              <tr><td colSpan={COLS.length + 2} className="td-state">Loading…</td></tr>
             ) : users.length === 0 ? (
-              <tr><td colSpan={COLS.length + 1} className="td-state">No users found.</td></tr>
+              <tr><td colSpan={COLS.length + 2} className="td-state">No users found.</td></tr>
             ) : users.map((user) => (
               <tr key={user.id} className="table-row" onClick={() => setViewUser(user)}>
                 <td className="td-name">{user.first_name}</td>
                 <td className="td-name">{user.last_name}</td>
                 <td>{user.email}</td>
-                <td>{user.phone ?? '—'}</td>
-                <td>{user.city ?? '—'}</td>
-                <td>{user.country ?? '—'}</td>
-                <td>{new Date(user.date_created).toLocaleDateString()}</td>
+                <td>
+                  <div className="role-pills">
+                    {user.roles.length > 0
+                      ? user.roles.map((r) => <RolePill key={r.id} name={r.role.name} />)
+                      : <span className="td-empty">—</span>}
+                  </div>
+                </td>
                 <td className="td-actions" onClick={(e) => e.stopPropagation()}>
-                  <button className="btn-icon-sm" title="Edit" onClick={() => setEditUser(user)}>✏️</button>
+                  <button className="btn-icon-sm" title="Edit"   onClick={() => setEditUser(user)}>✏️</button>
                   <button className="btn-icon-sm" title="Delete" onClick={() => setDeleteTarget(user)}>🗑️</button>
                 </td>
               </tr>
@@ -145,10 +153,7 @@ export default function UsersPage() {
         <div className="pagination-left">
           <label className="page-size-label">
             Rows per page:
-            <select
-              value={pageSize}
-              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
-            >
+            <select value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
               {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
           </label>
@@ -157,20 +162,16 @@ export default function UsersPage() {
           </span>
         </div>
         <div className="pagination-right">
-          <button className="btn btn-secondary btn-page" onClick={() => setPage(1)} disabled={page === 1}>«</button>
-          <button className="btn btn-secondary btn-page" onClick={() => setPage((p) => p - 1)} disabled={page === 1}>‹</button>
+          <button className="btn btn-secondary btn-page" onClick={() => setPage(1)}                  disabled={page === 1}>«</button>
+          <button className="btn btn-secondary btn-page" onClick={() => setPage((p) => p - 1)}       disabled={page === 1}>‹</button>
           <span className="pagination-pages">Page {page} of {totalPages}</span>
-          <button className="btn btn-secondary btn-page" onClick={() => setPage((p) => p + 1)} disabled={page === totalPages}>›</button>
-          <button className="btn btn-secondary btn-page" onClick={() => setPage(totalPages)} disabled={page === totalPages}>»</button>
+          <button className="btn btn-secondary btn-page" onClick={() => setPage((p) => p + 1)}       disabled={page === totalPages}>›</button>
+          <button className="btn btn-secondary btn-page" onClick={() => setPage(totalPages)}         disabled={page === totalPages}>»</button>
         </div>
       </div>
 
       {editUser !== undefined && (
-        <UserFormModal
-          user={editUser}
-          onSave={handleSave}
-          onClose={() => setEditUser(undefined)}
-        />
+        <UserFormModal user={editUser} onSave={handleSave} onClose={() => setEditUser(undefined)} />
       )}
 
       {viewUser && (
