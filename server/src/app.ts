@@ -13,11 +13,13 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+import authRouter      from './routes/auth';
 import usersRouter     from './routes/users';
 import rolesRouter     from './routes/roles';
 import userLoginsRouter from './routes/userLogins';
 import userRolesRouter  from './routes/userRoles';
 
+app.use('/api/auth',                   authRouter);
 app.use('/api/users',                  usersRouter);
 app.use('/api/roles',                  rolesRouter);
 app.use('/api/users/:userId/login',    userLoginsRouter);
