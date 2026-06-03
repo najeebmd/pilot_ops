@@ -1,5 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, RoleName } from '@prisma/client';
 import { PrismaLibSql } from '@prisma/adapter-libsql';
+import bcrypt from 'bcrypt';
 
 const adapter = new PrismaLibSql({ url: process.env.DATABASE_URL ?? 'file:./dev.db' });
 const prisma = new PrismaClient({ adapter });
@@ -67,16 +68,70 @@ const users = [
   },
 ];
 
+const roleNames: RoleName[] = ['STUDENT', 'GUEST', 'INSTRUCTOR', 'STAFF', 'ADMIN', 'OTHER'];
+
+// user index → role to assign
+const userRoleMap: Record<number, RoleName> = {
+  0: 'STUDENT',
+  1: 'STUDENT',
+  2: 'STUDENT',
+  3: 'STUDENT',
+  4: 'STUDENT',
+  5: 'INSTRUCTOR',
+  6: 'INSTRUCTOR',
+  7: 'STAFF',
+  8: 'ADMIN',
+  9: 'STUDENT',
+};
+
 async function main() {
+  // Roles
+  console.log('Seeding roles...');
+  for (const name of roleNames) {
+    await prisma.role.upsert({ where: { name }, update: {}, create: { name } });
+  }
+  console.log(`Seeded ${roleNames.length} roles.`);
+
+  // Users
   console.log('Seeding users...');
+  const seededUsers = [];
   for (const user of users) {
-    await prisma.user.upsert({
+    const u = await prisma.user.upsert({
       where: { email: user.email },
       update: {},
       create: user,
     });
+    seededUsers.push(u);
   }
-  console.log(`Seeded ${users.length} users.`);
+  console.log(`Seeded ${seededUsers.length} users.`);
+
+  // UserLogins
+  console.log('Seeding user logins...');
+  for (const user of seededUsers) {
+    const username = user.email.split('@')[0].replace(/\./g, '_');
+    const password = await bcrypt.hash('Password1!', 10);
+    await prisma.userLogin.upsert({
+      where: { user_id: user.id },
+      update: {},
+      create: { user_id: user.id, username, password },
+    });
+  }
+  console.log(`Seeded ${seededUsers.length} user logins.`);
+
+  // UserRoles
+  console.log('Seeding user roles...');
+  for (let i = 0; i < seededUsers.length; i++) {
+    const user = seededUsers[i];
+    const roleName = userRoleMap[i] ?? 'STUDENT';
+    const role = await prisma.role.findUnique({ where: { name: roleName } });
+    if (!role) continue;
+    await prisma.userRole.upsert({
+      where: { user_id_role_id: { user_id: user.id, role_id: role.id } },
+      update: {},
+      create: { user_id: user.id, role_id: role.id },
+    });
+  }
+  console.log(`Seeded ${seededUsers.length} user roles.`);
 }
 
 main()

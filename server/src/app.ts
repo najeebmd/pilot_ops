@@ -13,8 +13,14 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-import usersRouter from './routes/users';
+import usersRouter     from './routes/users';
+import rolesRouter     from './routes/roles';
+import userLoginsRouter from './routes/userLogins';
+import userRolesRouter  from './routes/userRoles';
 
-app.use('/api/users', usersRouter);
+app.use('/api/users',                  usersRouter);
+app.use('/api/roles',                  rolesRouter);
+app.use('/api/users/:userId/login',    userLoginsRouter);
+app.use('/api/users/:userId/roles',    userRolesRouter);
 
 export default app;
