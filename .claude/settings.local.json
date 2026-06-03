@@ -5,7 +5,21 @@
       "Bash(npm init *)",
       "Bash(npm install *)",
       "Bash(npm create *)",
-      "Bash(npx prisma *)"
+      "Bash(npx prisma *)",
+      "Bash(npx tsc *)",
+      "Bash(node -e \"const a = require\\('@prisma/adapter-libsql'\\); console.log\\(Object.keys\\(a\\)\\)\")",
+      "Bash(node -e \"const { PrismaLibSql } = require\\('@prisma/adapter-libsql'\\); const c = new PrismaLibSql; console.log\\(c\\)\")",
+      "Bash(npx ts-node *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3001/api/users)",
+      "Bash(python3 -c \"import json,sys; users=json.load\\(sys.stdin\\); print\\(f'{len\\(users\\)} users returned'\\)\")",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "Bash(curl -s \"http://localhost:3001/api/users?page=1&pageSize=3&sortBy=first_name&sortOrder=asc\")",
+      "Bash(python3 -c ' *)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(pkill -f \"vite --port 5173\")",
+      "Bash(pkill -f \"ts-node-dev\")"
     ]
   }
 }

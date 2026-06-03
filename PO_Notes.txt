@@ -1,0 +1,82 @@
+
+
+
+Features
+-> Guests
+	- Book a flight with instructor
+	- Rent a plane
+-> Students
+	- Book a flight with instructor
+	- Book a flight without instructor
+	- Schedule a ground class with instructor
+-> Instructors
+-> Staff
+	- Charge for flight
+	- View all reservations
+	- Make a reservation
+-> Admin
+	- Reports for all revenue & expenditure
+-> Common
+	- User creation
+	- Roles management
+	- Integration with Google
+
+
+
+========================================================================================
+
+
+User
+-> id
+-> first_name
+-> last_name
+-> email
+-> phone
+-> date_of_birth
+-> address_line1
+-> address_line2
+-> city
+-> state
+-> country
+-> postal_code
+-> date_created
+-> date_updated
+
+
+
+
+
+
+========================================================================================
+
+Tech Stack
+-> Node.js
+-> TypeScript
+-> SQLite/PostgreSQL
+-> React
+-> Prisma
+-> Express.js
+-> Kafka
+-> Jest
+-> AWS EC2
+-> Claude Code
+-> Lambda
+-> S3
+-> GitHub Actions
+-> Docker
+-> Kubernetes
+========================================================================================
+
+
+To re-seed in the future (e.g. after wiping the DB): 
+cd server && npm run db:seed. 
+The seed uses upsert on email so it's safe to run multiple times without duplicates.
+========================================================================================
+========================================================================================
+========================================================================================
+========================================================================================
+
+
+
+
+

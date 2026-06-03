@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Sky gradient background circle -->
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+    <linearGradient id="wingGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#cbd5e1"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Outer ring -->
+  <circle cx="100" cy="100" r="96" fill="url(#skyGrad)"/>
+  <circle cx="100" cy="100" r="96" stroke="#7dd3fc" stroke-width="1.5" fill="none" opacity="0.4"/>
+
+  <!-- Horizon line -->
+  <rect x="20" y="108" width="160" height="1.5" fill="#7dd3fc" opacity="0.5" rx="1"/>
+
+  <!-- Airplane silhouette -->
+  <!-- Fuselage -->
+  <path d="M70 100 Q100 88 130 100 Q100 107 70 100Z" fill="white"/>
+  <!-- Nose -->
+  <path d="M128 100 L148 100 Q152 100 148 102 L130 102Z" fill="white"/>
+  <!-- Tail fin -->
+  <path d="M72 100 L68 100 L66 88 L74 97Z" fill="white"/>
+  <!-- Left wing -->
+  <path d="M95 100 L60 115 L58 118 L65 116 L97 103Z" fill="url(#wingGrad)"/>
+  <!-- Right wing -->
+  <path d="M97 97 L62 82 L60 79 L67 81 L99 94Z" fill="url(#wingGrad)"/>
+  <!-- Tail wing left -->
+  <path d="M76 101 L64 107 L63 109 L67 108 L77 103Z" fill="white" opacity="0.85"/>
+  <!-- Tail wing right -->
+  <path d="M77 99 L65 93 L64 91 L68 92 L78 97Z" fill="white" opacity="0.85"/>
+
+  <!-- Compass tick marks at cardinal points -->
+  <line x1="100" y1="10" x2="100" y2="20" stroke="#fbbf24" stroke-width="3" stroke-linecap="round"/>
+  <line x1="100" y1="180" x2="100" y2="190" stroke="#e2e8f0" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="10" y1="100" x2="20" y2="100" stroke="#e2e8f0" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+  <line x1="180" y1="100" x2="190" y2="100" stroke="#e2e8f0" stroke-width="2" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- N indicator -->
+  <text x="100" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="13" font-weight="700" fill="#fbbf24">N</text>
+</svg>
