@@ -2,8 +2,27 @@ import type { User, UserFormData } from '../types/user';
 
 const BASE = '/api/users';
 
-export async function fetchUsers(): Promise<User[]> {
-  const res = await fetch(BASE);
+export interface UsersPage {
+  data: User[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface FetchUsersParams {
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+export async function fetchUsers(params: FetchUsersParams = {}): Promise<UsersPage> {
+  const qs = new URLSearchParams();
+  if (params.page)      qs.set('page',      String(params.page));
+  if (params.pageSize)  qs.set('pageSize',  String(params.pageSize));
+  if (params.sortBy)    qs.set('sortBy',    params.sortBy);
+  if (params.sortOrder) qs.set('sortOrder', params.sortOrder);
+  const res = await fetch(`${BASE}?${qs}`);
   if (!res.ok) throw new Error('Failed to fetch users');
   return res.json();
 }

@@ -6,114 +6,164 @@ import UserViewDrawer from '../components/UserViewDrawer';
 import ConfirmDialog from '../components/ConfirmDialog';
 import './UsersPage.css';
 
-export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+type SortKey = 'first_name' | 'last_name' | 'email' | 'phone' | 'city' | 'country' | 'date_created';
+type SortOrder = 'asc' | 'desc';
 
-  const [viewUser, setViewUser] = useState<User | null>(null);
-  const [editUser, setEditUser] = useState<User | null | undefined>(undefined); // undefined = closed, null = new
+const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
+
+interface Col {
+  key: SortKey;
+  label: string;
+}
+
+const COLS: Col[] = [
+  { key: 'first_name',   label: 'First Name' },
+  { key: 'last_name',    label: 'Last Name' },
+  { key: 'email',        label: 'Email' },
+  { key: 'phone',        label: 'Phone' },
+  { key: 'city',         label: 'City' },
+  { key: 'country',      label: 'Country' },
+  { key: 'date_created', label: 'Created' },
+];
+
+export default function UsersPage() {
+  const [users, setUsers]         = useState<User[]>([]);
+  const [total, setTotal]         = useState(0);
+  const [loading, setLoading]     = useState(true);
+
+  const [page, setPage]           = useState(1);
+  const [pageSize, setPageSize]   = useState(10);
+  const [sortBy, setSortBy]       = useState<SortKey>('date_created');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  const [viewUser, setViewUser]       = useState<User | null>(null);
+  const [editUser, setEditUser]       = useState<User | null | undefined>(undefined);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [page, pageSize, sortBy, sortOrder]);
 
   async function load() {
     setLoading(true);
     try {
-      setUsers(await fetchUsers());
+      const result = await fetchUsers({ page, pageSize, sortBy, sortOrder });
+      setUsers(result.data);
+      setTotal(result.total);
     } finally {
       setLoading(false);
     }
   }
 
+  function handleSort(key: SortKey) {
+    if (key === sortBy) {
+      setSortOrder((o) => (o === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(key);
+      setSortOrder('asc');
+    }
+    setPage(1);
+  }
+
   async function handleSave(data: UserFormData) {
     if (editUser) {
-      const updated = await updateUser(editUser.id, data);
-      setUsers((u) => u.map((x) => (x.id === updated.id ? updated : x)));
+      await updateUser(editUser.id, data);
     } else {
-      const created = await createUser(data);
-      setUsers((u) => [created, ...u]);
+      await createUser(data);
     }
     setEditUser(undefined);
+    setPage(1);
+    await load();
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
     await deleteUser(deleteTarget.id);
-    setUsers((u) => u.filter((x) => x.id !== deleteTarget.id));
     setDeleteTarget(null);
     if (viewUser?.id === deleteTarget.id) setViewUser(null);
+    // Go back a page if we just deleted the last item on this page
+    const newTotal = total - 1;
+    const maxPage = Math.max(1, Math.ceil(newTotal / pageSize));
+    setPage((p) => Math.min(p, maxPage));
+    await load();
   }
 
-  const filtered = users.filter((u) => {
-    const q = search.toLowerCase();
-    return (
-      u.first_name.toLowerCase().includes(q) ||
-      u.last_name.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
-      (u.city ?? '').toLowerCase().includes(q) ||
-      (u.country ?? '').toLowerCase().includes(q)
-    );
-  });
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+
+  function SortIcon({ col }: { col: SortKey }) {
+    if (col !== sortBy) return <span className="sort-icon sort-icon--idle">↕</span>;
+    return <span className="sort-icon sort-icon--active">{sortOrder === 'asc' ? '↑' : '↓'}</span>;
+  }
 
   return (
     <div className="page">
       <div className="page-header">
         <div>
           <h1>Users</h1>
-          <p className="page-subtitle">{users.length} total</p>
+          <p className="page-subtitle">{total} total</p>
         </div>
         <button className="btn btn-primary" onClick={() => setEditUser(null)}>+ Add User</button>
       </div>
 
-      <div className="toolbar">
-        <input
-          className="search-input"
-          placeholder="Search by name, email, city, country…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="table-wrapper">
+        <table className="users-table">
+          <thead>
+            <tr>
+              {COLS.map((col) => (
+                <th key={col.key} className="th-sortable" onClick={() => handleSort(col.key)}>
+                  {col.label} <SortIcon col={col.key} />
+                </th>
+              ))}
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={COLS.length + 1} className="td-state">Loading…</td></tr>
+            ) : users.length === 0 ? (
+              <tr><td colSpan={COLS.length + 1} className="td-state">No users found.</td></tr>
+            ) : users.map((user) => (
+              <tr key={user.id} className="table-row" onClick={() => setViewUser(user)}>
+                <td className="td-name">{user.first_name}</td>
+                <td className="td-name">{user.last_name}</td>
+                <td>{user.email}</td>
+                <td>{user.phone ?? '—'}</td>
+                <td>{user.city ?? '—'}</td>
+                <td>{user.country ?? '—'}</td>
+                <td>{new Date(user.date_created).toLocaleDateString()}</td>
+                <td className="td-actions" onClick={(e) => e.stopPropagation()}>
+                  <button className="btn-icon-sm" title="Edit" onClick={() => setEditUser(user)}>✏️</button>
+                  <button className="btn-icon-sm" title="Delete" onClick={() => setDeleteTarget(user)}>🗑️</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {loading ? (
-        <p className="state-msg">Loading…</p>
-      ) : filtered.length === 0 ? (
-        <p className="state-msg">{search ? 'No results.' : 'No users yet.'}</p>
-      ) : (
-        <div className="table-wrapper">
-          <table className="users-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>City</th>
-                <th>Country</th>
-                <th>Created</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((user) => (
-                <tr key={user.id} className="table-row" onClick={() => setViewUser(user)}>
-                  <td className="td-name">{user.first_name} {user.last_name}</td>
-                  <td>{user.email}</td>
-                  <td>{user.phone ?? '—'}</td>
-                  <td>{user.city ?? '—'}</td>
-                  <td>{user.country ?? '—'}</td>
-                  <td>{new Date(user.date_created).toLocaleDateString()}</td>
-                  <td className="td-actions" onClick={(e) => e.stopPropagation()}>
-                    <button className="btn-icon-sm" title="Edit" onClick={() => setEditUser(user)}>✏️</button>
-                    <button className="btn-icon-sm" title="Delete" onClick={() => setDeleteTarget(user)}>🗑️</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="pagination">
+        <div className="pagination-left">
+          <label className="page-size-label">
+            Rows per page:
+            <select
+              value={pageSize}
+              onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
+            >
+              {PAGE_SIZE_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </label>
+          <span className="pagination-info">
+            {total === 0 ? '0' : `${(page - 1) * pageSize + 1}–${Math.min(page * pageSize, total)}`} of {total}
+          </span>
         </div>
-      )}
+        <div className="pagination-right">
+          <button className="btn btn-secondary btn-page" onClick={() => setPage(1)} disabled={page === 1}>«</button>
+          <button className="btn btn-secondary btn-page" onClick={() => setPage((p) => p - 1)} disabled={page === 1}>‹</button>
+          <span className="pagination-pages">Page {page} of {totalPages}</span>
+          <button className="btn btn-secondary btn-page" onClick={() => setPage((p) => p + 1)} disabled={page === totalPages}>›</button>
+          <button className="btn btn-secondary btn-page" onClick={() => setPage(totalPages)} disabled={page === totalPages}>»</button>
+        </div>
+      </div>
 
       {editUser !== undefined && (
         <UserFormModal

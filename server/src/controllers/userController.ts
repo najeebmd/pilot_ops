@@ -1,9 +1,27 @@
 import { Request, Response } from 'express';
 import prisma from '../lib/prisma';
 
-export async function getUsers(_req: Request, res: Response) {
-  const users = await prisma.user.findMany({ orderBy: { date_created: 'desc' } });
-  res.json(users);
+const SORTABLE = new Set([
+  'first_name', 'last_name', 'email', 'phone',
+  'city', 'country', 'date_created', 'date_updated',
+]);
+
+export async function getUsers(req: Request, res: Response) {
+  const page     = Math.max(1, Number(req.query.page)     || 1);
+  const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 10));
+  const sortBy   = SORTABLE.has(String(req.query.sortBy)) ? String(req.query.sortBy) : 'date_created';
+  const sortOrder: 'asc' | 'desc' = req.query.sortOrder === 'asc' ? 'asc' : 'desc';
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      orderBy: { [sortBy]: sortOrder },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    }),
+    prisma.user.count(),
+  ]);
+
+  res.json({ data: users, total, page, pageSize });
 }
 
 export async function getUserById(req: Request, res: Response) {
