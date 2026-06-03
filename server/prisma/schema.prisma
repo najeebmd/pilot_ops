@@ -1,0 +1,10 @@
+// Datasource uses SQLite now; to switch to PostgreSQL update prisma.config.ts.
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Add your models here
