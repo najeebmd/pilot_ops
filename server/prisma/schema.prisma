@@ -101,9 +101,10 @@ model Reservation {
   date_created  DateTime          @default(now())
   date_updated  DateTime          @updatedAt
 
-  user          User              @relation("UserReservations",       fields: [user_id],       references: [id], onDelete: Restrict)
-  aircraft      Aircraft?         @relation(                          fields: [aircraft_id],   references: [id], onDelete: SetNull)
-  instructor    User?             @relation("InstructorReservations", fields: [instructor_id], references: [id], onDelete: SetNull)
+  user               User                @relation("UserReservations",       fields: [user_id],       references: [id], onDelete: Restrict)
+  aircraft           Aircraft?           @relation(                          fields: [aircraft_id],   references: [id], onDelete: SetNull)
+  instructor         User?               @relation("InstructorReservations", fields: [instructor_id], references: [id], onDelete: SetNull)
+  instructor_schedule InstructorSchedule?
 }
 
 model Aircraft {
@@ -126,13 +127,17 @@ model Aircraft {
 }
 
 model InstructorSchedule {
-  id            Int          @id @default(autoincrement())
-  instructor_id Int
-  date_start    DateTime
-  date_end      DateTime
-  activity_type ActivityType
-  date_created  DateTime     @default(now())
-  date_updated  DateTime     @updatedAt
+  id             Int          @id @default(autoincrement())
+  instructor_id  Int
+  date_start     DateTime
+  date_end       DateTime
+  activity_type  ActivityType
+  // When set, this entry was auto-created from a reservation.
+  // Deleting the reservation cascades and removes this entry automatically.
+  reservation_id Int?         @unique
+  date_created   DateTime     @default(now())
+  date_updated   DateTime     @updatedAt
 
-  instructor    User         @relation(fields: [instructor_id], references: [id], onDelete: Cascade)
+  instructor     User         @relation(fields: [instructor_id],  references: [id], onDelete: Cascade)
+  reservation    Reservation? @relation(fields: [reservation_id], references: [id], onDelete: Cascade)
 }

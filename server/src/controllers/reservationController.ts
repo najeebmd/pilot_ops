@@ -8,19 +8,32 @@ const SORTABLE = new Set([
 ]);
 
 const includeRelations = {
-  user: {
-    select: { id: true, first_name: true, last_name: true, email: true },
-  },
-  aircraft: {
-    select: { id: true, tail_number: true, make: true, model: true },
-  },
-  instructor: {
-    select: { id: true, first_name: true, last_name: true, email: true },
-  },
+  user:       { select: { id: true, first_name: true, last_name: true, email: true } },
+  aircraft:   { select: { id: true, tail_number: true, make: true, model: true } },
+  instructor: { select: { id: true, first_name: true, last_name: true, email: true } },
+  instructor_schedule: { select: { id: true } },
 } as const;
 
-// ── Conflict helpers ──────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
+const fmt = (d: Date) =>
+  d.toLocaleString('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  });
+
+async function assertInstructor(instructor_id: number): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: instructor_id },
+    include: { roles: { include: { role: true } } },
+  });
+  if (!user) return 'Instructor not found';
+  if (!user.roles.some((r) => r.role.name === 'INSTRUCTOR'))
+    return 'User does not have the INSTRUCTOR role';
+  return null;
+}
+
+/** Check for overlapping non-CANCELED reservations for the same aircraft. */
 async function checkAircraftConflict(
   aircraft_id: number, start: Date, end: Date, excludeId?: number,
 ): Promise<string | null> {
@@ -35,11 +48,11 @@ async function checkAircraftConflict(
     include: { aircraft: { select: { tail_number: true } } },
   });
   if (!conflict) return null;
-  const fmt = (d: Date) => d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
-  return `Aircraft conflict: ${conflict.aircraft?.tail_number ?? `id ${aircraft_id}`} already has a reservation from ${fmt(conflict.date_start)} to ${fmt(conflict.date_end)} (id: ${conflict.id})`;
+  return `Aircraft conflict: ${conflict.aircraft?.tail_number ?? `id ${aircraft_id}`} already has a reservation from ${fmt(conflict.date_start)} to ${fmt(conflict.date_end)} (reservation id: ${conflict.id})`;
 }
 
-async function checkInstructorConflict(
+/** Check for overlapping non-CANCELED reservations for the same instructor. */
+async function checkInstructorReservationConflict(
   instructor_id: number, start: Date, end: Date, excludeId?: number,
 ): Promise<string | null> {
   const conflict = await prisma.reservation.findFirst({
@@ -53,22 +66,73 @@ async function checkInstructorConflict(
     include: { instructor: { select: { first_name: true, last_name: true } } },
   });
   if (!conflict) return null;
-  const fmt = (d: Date) => d.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
   const name = conflict.instructor
     ? `${conflict.instructor.first_name} ${conflict.instructor.last_name}`
     : `Instructor id ${instructor_id}`;
-  return `Instructor conflict: ${name} already has a reservation from ${fmt(conflict.date_start)} to ${fmt(conflict.date_end)} (id: ${conflict.id})`;
+  return `Instructor conflict: ${name} already has a reservation from ${fmt(conflict.date_start)} to ${fmt(conflict.date_end)} (reservation id: ${conflict.id})`;
 }
 
-async function assertInstructor(instructor_id: number): Promise<string | null> {
-  const user = await prisma.user.findUnique({
-    where: { id: instructor_id },
-    include: { roles: { include: { role: true } } },
+/** Check instructor_schedule for blocks that overlap the requested time.
+ *  Manually-entered NOT_AVAILABLE or other blocks prevent booking. */
+async function checkInstructorScheduleConflict(
+  instructor_id: number, start: Date, end: Date, excludeReservationId?: number,
+): Promise<string | null> {
+  const conflict = await prisma.instructorSchedule.findFirst({
+    where: {
+      instructor_id,
+      // Ignore the schedule entry that belongs to the reservation being updated
+      reservation_id: excludeReservationId
+        ? { not: excludeReservationId }
+        : undefined,
+      date_start: { lt: end },
+      date_end:   { gt: start },
+    },
+    include: { instructor: { select: { first_name: true, last_name: true } } },
   });
-  if (!user) return 'Instructor not found';
-  if (!user.roles.some((r) => r.role.name === 'INSTRUCTOR'))
-    return 'User does not have the INSTRUCTOR role';
-  return null;
+  if (!conflict) return null;
+  const name = conflict.instructor
+    ? `${conflict.instructor.first_name} ${conflict.instructor.last_name}`
+    : `Instructor id ${instructor_id}`;
+  return `Instructor unavailable: ${name} has a "${conflict.activity_type}" block from ${fmt(conflict.date_start)} to ${fmt(conflict.date_end)} (schedule id: ${conflict.id})`;
+}
+
+/** Create an InstructorSchedule entry linked to a reservation. */
+async function createLinkedScheduleEntry(
+  instructor_id: number, reservation_id: number, start: Date, end: Date,
+) {
+  await prisma.instructorSchedule.create({
+    data: {
+      instructor_id,
+      reservation_id,
+      date_start:    start,
+      date_end:      end,
+      activity_type: 'INSTRUCTION',
+    },
+  });
+}
+
+/** Update the InstructorSchedule entry linked to a reservation (if it exists). */
+async function updateLinkedScheduleEntry(
+  reservation_id: number,
+  instructor_id: number,
+  start: Date,
+  end: Date,
+) {
+  const existing = await prisma.instructorSchedule.findUnique({ where: { reservation_id } });
+  if (!existing) {
+    // Entry was manually deleted — recreate it
+    await createLinkedScheduleEntry(instructor_id, reservation_id, start, end);
+    return;
+  }
+  await prisma.instructorSchedule.update({
+    where: { reservation_id },
+    data:  { instructor_id, date_start: start, date_end: end },
+  });
+}
+
+/** Delete the InstructorSchedule entry linked to a reservation (on cancel). */
+async function deleteLinkedScheduleEntry(reservation_id: number) {
+  await prisma.instructorSchedule.deleteMany({ where: { reservation_id } });
 }
 
 // ── GET /api/reservations ─────────────────────────────────────────────────────
@@ -95,7 +159,6 @@ export async function getReservations(req: Request, res: Response) {
     }),
     prisma.reservation.count({ where }),
   ]);
-
   res.json({ data: reservations, total, page, pageSize });
 }
 
@@ -106,10 +169,7 @@ export async function getReservationById(req: Request, res: Response) {
     where: { id },
     include: includeRelations,
   });
-  if (!reservation) {
-    res.status(404).json({ message: 'Reservation not found' });
-    return;
-  }
+  if (!reservation) { res.status(404).json({ message: 'Reservation not found' }); return; }
   res.json(reservation);
 }
 
@@ -132,7 +192,6 @@ export async function createReservation(req: Request, res: Response) {
     res.status(400).json({ message: 'date_end must be after date_start' });
     return;
   }
-
   if (status && !VALID_STATUSES.has(String(status).toUpperCase())) {
     res.status(400).json({ message: `status must be one of: ${[...VALID_STATUSES].join(', ')}` });
     return;
@@ -151,8 +210,14 @@ export async function createReservation(req: Request, res: Response) {
   if (instructor_id) {
     const err = await assertInstructor(Number(instructor_id));
     if (err) { res.status(422).json({ message: err }); return; }
-    const conflict = await checkInstructorConflict(Number(instructor_id), start, end);
-    if (conflict) { res.status(409).json({ message: conflict }); return; }
+
+    // Check instructor's existing reservations
+    const reservationConflict = await checkInstructorReservationConflict(Number(instructor_id), start, end);
+    if (reservationConflict) { res.status(409).json({ message: reservationConflict }); return; }
+
+    // Check instructor's manual schedule blocks (NOT_AVAILABLE, etc.)
+    const scheduleConflict = await checkInstructorScheduleConflict(Number(instructor_id), start, end);
+    if (scheduleConflict) { res.status(409).json({ message: scheduleConflict }); return; }
   }
 
   const reservation = await prisma.reservation.create({
@@ -166,6 +231,12 @@ export async function createReservation(req: Request, res: Response) {
     },
     include: includeRelations,
   });
+
+  // Auto-create instructor schedule entry
+  if (instructor_id && reservation.status === 'RESERVED') {
+    await createLinkedScheduleEntry(Number(instructor_id), reservation.id, start, end);
+  }
+
   res.status(201).json(reservation);
 }
 
@@ -191,37 +262,58 @@ export async function updateReservation(req: Request, res: Response) {
 
   const resolvedAircraftId   = aircraft_id   !== undefined ? (aircraft_id   ? Number(aircraft_id)   : null) : existing.aircraft_id;
   const resolvedInstructorId = instructor_id !== undefined ? (instructor_id ? Number(instructor_id) : null) : existing.instructor_id;
+  const resolvedStatus       = status ? String(status).toUpperCase() as ReservationStatus : existing.status;
 
-  if (resolvedAircraftId) {
+  const isCanceling = resolvedStatus === 'CANCELED' && existing.status !== 'CANCELED';
+
+  if (resolvedAircraftId && !isCanceling) {
     const conflict = await checkAircraftConflict(resolvedAircraftId, start, end, id);
     if (conflict) { res.status(409).json({ message: conflict }); return; }
   }
 
-  if (resolvedInstructorId) {
+  if (resolvedInstructorId && !isCanceling) {
     if (resolvedInstructorId !== existing.instructor_id) {
       const err = await assertInstructor(resolvedInstructorId);
       if (err) { res.status(422).json({ message: err }); return; }
     }
-    const conflict = await checkInstructorConflict(resolvedInstructorId, start, end, id);
-    if (conflict) { res.status(409).json({ message: conflict }); return; }
+    const reservationConflict = await checkInstructorReservationConflict(resolvedInstructorId, start, end, id);
+    if (reservationConflict) { res.status(409).json({ message: reservationConflict }); return; }
+    const scheduleConflict = await checkInstructorScheduleConflict(resolvedInstructorId, start, end, id);
+    if (scheduleConflict) { res.status(409).json({ message: scheduleConflict }); return; }
   }
 
   const reservation = await prisma.reservation.update({
     where: { id },
     data: {
-      user_id:       user_id       ? Number(user_id)                              : undefined,
-      aircraft_id:   aircraft_id   !== undefined ? resolvedAircraftId             : undefined,
-      instructor_id: instructor_id !== undefined ? resolvedInstructorId           : undefined,
+      user_id:       user_id       ? Number(user_id)       : undefined,
+      aircraft_id:   aircraft_id   !== undefined ? resolvedAircraftId   : undefined,
+      instructor_id: instructor_id !== undefined ? resolvedInstructorId : undefined,
       date_start:    start,
       date_end:      end,
-      status:        status ? String(status).toUpperCase() as ReservationStatus   : undefined,
+      status:        resolvedStatus,
     },
     include: includeRelations,
   });
-  res.json(reservation);
+
+  // Sync linked InstructorSchedule
+  if (isCanceling) {
+    await deleteLinkedScheduleEntry(id);
+  } else if (resolvedInstructorId) {
+    await updateLinkedScheduleEntry(id, resolvedInstructorId, start, end);
+  } else if (!resolvedInstructorId && existing.instructor_id) {
+    await deleteLinkedScheduleEntry(id);
+  }
+
+  // Refetch so the response reflects the updated schedule relation
+  const fresh = await prisma.reservation.findUnique({
+    where: { id },
+    include: includeRelations,
+  });
+  res.json(fresh);
 }
 
 // ── DELETE /api/reservations/:id ──────────────────────────────────────────────
+// The Cascade on InstructorSchedule.reservation_id handles automatic cleanup.
 export async function deleteReservation(req: Request, res: Response) {
   const id = Number(req.params.id);
   const existing = await prisma.reservation.findUnique({ where: { id } });
