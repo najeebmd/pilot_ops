@@ -7,6 +7,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum ActivityType {
+  INSTRUCTION
+  OTHER
+  NOT_AVAILABLE
+}
+
 enum RoleName {
   STUDENT
   GUEST
@@ -32,8 +38,9 @@ model User {
   date_created  DateTime    @default(now())
   date_updated  DateTime    @updatedAt
 
-  login         UserLogin?
-  roles         UserRole[]
+  login              UserLogin?
+  roles              UserRole[]
+  instructor_schedule InstructorSchedule[]
 }
 
 model Role {
@@ -67,4 +74,16 @@ model UserRole {
   role         Role     @relation(fields: [role_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, role_id])
+}
+
+model InstructorSchedule {
+  id            Int          @id @default(autoincrement())
+  instructor_id Int
+  date_start    DateTime
+  date_end      DateTime
+  activity_type ActivityType
+  date_created  DateTime     @default(now())
+  date_updated  DateTime     @updatedAt
+
+  instructor    User         @relation(fields: [instructor_id], references: [id], onDelete: Cascade)
 }
