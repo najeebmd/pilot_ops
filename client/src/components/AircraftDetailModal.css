@@ -1,0 +1,77 @@
+.ad-modal {
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.ad-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.ad-title-block {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.ad-tail {
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: 0.04em;
+}
+
+.ad-status-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ad-body {
+  padding: 1rem 1.25rem;
+  flex: 1;
+}
+
+.ad-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #94a3b8;
+  margin: 1rem 0 0.4rem;
+}
+
+.ad-section-label:first-child { margin-top: 0; }
+
+.ad-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.38rem 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+}
+
+.ad-row:last-of-type { border-bottom: none; }
+
+.ad-label { color: #64748b; flex-shrink: 0; margin-right: 1rem; }
+.ad-value { color: #0f172a; text-align: right; }
+
+.ad-footer {
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}

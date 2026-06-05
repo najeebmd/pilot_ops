@@ -3,7 +3,8 @@ import Layout from './components/layout/Layout';
 import HomePage from './pages/HomePage';
 import UsersPage    from './pages/UsersPage';
 import SchedulePage  from './pages/SchedulePage';
-import AircraftPage      from './pages/AircraftPage';
+import AircraftPage             from './pages/AircraftPage';
+import AircraftAvailabilityPage from './pages/AircraftAvailabilityPage';
 import ReservationsPage  from './pages/ReservationsPage';
 
 function Placeholder({ title }: { title: string }) {
@@ -24,7 +25,8 @@ export default function App() {
           <Route path="/students"    element={<UsersPage />} />
           <Route path="/instructors" element={<Placeholder title="Instructors" />} />
           <Route path="/courses"     element={<Placeholder title="Courses" />} />
-          <Route path="/aircraft"    element={<AircraftPage />} />
+          <Route path="/aircraft"              element={<AircraftPage />} />
+          <Route path="/aircraft/availability" element={<AircraftAvailabilityPage />} />
           <Route path="/schedule"    element={<SchedulePage />} />
           <Route path="/reservations" element={<ReservationsPage />} />
         </Route>
