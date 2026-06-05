@@ -19,6 +19,7 @@ function fmtFullDate(d: Date) { return d.toLocaleDateString([],{weekday:'long',m
 function overlaps(s1: Date, e1: Date, s2: Date, e2: Date) { return s1 < e2 && e1 > s2; }
 
 interface Instructor { id: number; first_name: string; last_name: string; }
+interface Student    { id: number; first_name: string; last_name: string; email: string; }
 
 const HOURS = Array.from({length: 16}, (_,i) => i + 6); // 06:00–21:00
 
@@ -36,6 +37,9 @@ export default function ReservationsPage() {
 
   const [instructors,    setInstructors]    = useState<Instructor[]>([]);
   const [allAircraft,    setAllAircraft]    = useState<Aircraft[]>([]);
+  const [students,       setStudents]       = useState<Student[]>([]);
+
+  const isAdminOrStaff = user?.roles.some(r => r === 'ADMIN' || r === 'STAFF') ?? false;
   const [scheduleMap,    setScheduleMap]    = useState<Record<number, ScheduleEntry[]>>({});
   const [reservations,   setReservations]   = useState<Reservation[]>([]);
   const [myReservations, setMyReservations] = useState<Reservation[]>([]);
@@ -44,11 +48,14 @@ export default function ReservationsPage() {
   const [bookingSlot,  setBookingSlot]  = useState<{start: string; instructorId: number|null}|null>(null);
   const [cancelTarget, setCancelTarget] = useState<Reservation|null>(null);
 
-  // Load instructors + ready aircraft once
+  // Load instructors + ready aircraft once; also load students if admin/staff
   useEffect(() => {
     fetchUsers({ role: 'INSTRUCTOR', pageSize: 100 } as any).then(r => setInstructors(r.data as any));
     fetchAircraft({ pageSize: 100, status: 'READY' }).then(r => setAllAircraft(r.data));
-  }, []);
+    if (isAdminOrStaff) {
+      fetchUsers({ role: 'STUDENT', pageSize: 200 } as any).then(r => setStudents(r.data as any));
+    }
+  }, [isAdminOrStaff]);
 
   const loadDay = useCallback(async () => {
     setLoading(true);
@@ -306,6 +313,8 @@ export default function ReservationsPage() {
           userId={user.id}
           instructors={instructors}
           aircraft={allAircraft}
+          students={students}
+          canSelectStudent={isAdminOrStaff}
           defaultStart={bookingSlot.start}
           defaultInstructorId={bookingSlot.instructorId}
           onSave={handleBook}

@@ -1,5 +1,26 @@
 .res-modal { max-width: 500px; }
 
+.admin-badge {
+  margin-left: 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: #fef9c3;
+  color: #a16207;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid #fde68a;
+}
+
+.selected-student-hint {
+  color: #1e40af !important;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem !important;
+}
+
 .optional-label {
   font-size: 0.7rem;
   font-weight: 400;

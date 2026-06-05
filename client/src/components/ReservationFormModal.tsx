@@ -4,12 +4,15 @@ import type { Aircraft } from '../types/aircraft';
 import './ReservationFormModal.css';
 
 interface Instructor { id: number; first_name: string; last_name: string; }
+interface Student    { id: number; first_name: string; last_name: string; email: string; }
 
 interface Props {
-  userId:       number;
-  instructors:  Instructor[];
-  aircraft:     Aircraft[];
-  defaultStart?: string;
+  userId:               number;           // logged-in user's id (default reservation owner)
+  instructors:          Instructor[];
+  aircraft:             Aircraft[];
+  students?:            Student[];        // only passed for admin/staff
+  canSelectStudent?:    boolean;
+  defaultStart?:        string;
   defaultInstructorId?: number | null;
   onSave:  (data: ReservationFormData) => Promise<void>;
   onClose: () => void;
@@ -22,16 +25,19 @@ function toLocalInput(iso: string) {
 }
 
 export default function ReservationFormModal({
-  userId, instructors, aircraft, defaultStart, defaultInstructorId, onSave, onClose,
+  userId, instructors, aircraft, students = [], canSelectStudent = false,
+  defaultStart, defaultInstructorId, onSave, onClose,
 }: Props) {
-  const [instructorId, setInstructorId] = useState<number | ''>('');
-  const [aircraftId,   setAircraftId]   = useState<number | ''>('');
-  const [dateStart,    setDateStart]    = useState('');
-  const [dateEnd,      setDateEnd]      = useState('');
-  const [saving,       setSaving]       = useState(false);
-  const [error,        setError]        = useState('');
+  const [selectedUserId, setSelectedUserId] = useState<number>(userId);
+  const [instructorId,   setInstructorId]   = useState<number | ''>('');
+  const [aircraftId,     setAircraftId]     = useState<number | ''>('');
+  const [dateStart,      setDateStart]      = useState('');
+  const [dateEnd,        setDateEnd]        = useState('');
+  const [saving,         setSaving]         = useState(false);
+  const [error,          setError]          = useState('');
 
   useEffect(() => {
+    setSelectedUserId(userId);
     setInstructorId(defaultInstructorId ?? '');
     setError('');
     if (defaultStart) {
@@ -44,17 +50,18 @@ export default function ReservationFormModal({
       setDateStart('');
       setDateEnd('');
     }
-  }, [defaultStart, defaultInstructorId]);
+  }, [defaultStart, defaultInstructorId, userId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
     if (!dateStart || !dateEnd) { setError('Start and end date/time are required'); return; }
     if (new Date(dateEnd) <= new Date(dateStart)) { setError('End time must be after start time'); return; }
+    if (canSelectStudent && !selectedUserId) { setError('Please select a student'); return; }
     setSaving(true);
     try {
       await onSave({
-        user_id:       userId,
+        user_id:       selectedUserId,
         instructor_id: instructorId ? Number(instructorId) : null,
         aircraft_id:   aircraftId   ? Number(aircraftId)   : null,
         date_start:    new Date(dateStart).toISOString(),
@@ -71,6 +78,10 @@ export default function ReservationFormModal({
     ? Math.round((new Date(dateEnd).getTime() - new Date(dateStart).getTime()) / 60000)
     : null;
 
+  const selectedStudent = canSelectStudent
+    ? students.find(s => s.id === selectedUserId)
+    : null;
+
   return (
     <div className="modal-backdrop">
       <div className="modal res-modal">
@@ -80,6 +91,37 @@ export default function ReservationFormModal({
         </div>
 
         <form onSubmit={handleSubmit}>
+
+          {/* ── Student selector (admin/staff only) ── */}
+          {canSelectStudent && (
+            <>
+              <p className="form-section-label">
+                Student
+                <span className="admin-badge">Admin / Staff</span>
+              </p>
+              <div className="field">
+                <select
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(Number(e.target.value))}
+                  required
+                >
+                  <option value="">— Select a student —</option>
+                  {students.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.first_name} {s.last_name} — {s.email}
+                    </option>
+                  ))}
+                </select>
+                {selectedStudent && (
+                  <p className="field-hint selected-student-hint">
+                    📋 Booking on behalf of <strong>{selectedStudent.first_name} {selectedStudent.last_name}</strong>
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* ── Date & Time ── */}
           <p className="form-section-label">Date &amp; Time</p>
           <div className="form-grid">
             <div className="field">
@@ -101,10 +143,13 @@ export default function ReservationFormModal({
           </div>
           {durationMins && (
             <p className="duration-hint">
-              Duration: {Math.floor(durationMins/60) > 0 ? `${Math.floor(durationMins/60)}h ` : ''}{durationMins%60 > 0 ? `${durationMins%60}m` : ''}
+              Duration:{' '}
+              {Math.floor(durationMins/60) > 0 ? `${Math.floor(durationMins/60)}h ` : ''}
+              {durationMins%60 > 0 ? `${durationMins%60}m` : ''}
             </p>
           )}
 
+          {/* ── Instructor ── */}
           <p className="form-section-label">Instructor <span className="optional-label">(optional)</span></p>
           <div className="field">
             <select value={instructorId} onChange={(e) => setInstructorId(e.target.value ? Number(e.target.value) : '')}>
@@ -118,6 +163,7 @@ export default function ReservationFormModal({
             )}
           </div>
 
+          {/* ── Aircraft ── */}
           <p className="form-section-label">Aircraft <span className="optional-label">(optional)</span></p>
           <div className="field">
             <select value={aircraftId} onChange={(e) => setAircraftId(e.target.value ? Number(e.target.value) : '')}>
