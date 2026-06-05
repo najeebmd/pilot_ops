@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import HomePage from './pages/HomePage';
-import UsersPage from './pages/UsersPage';
+import UsersPage    from './pages/UsersPage';
+import SchedulePage from './pages/SchedulePage';
 
 function Placeholder({ title }: { title: string }) {
   return (
@@ -22,7 +23,7 @@ export default function App() {
           <Route path="/instructors" element={<Placeholder title="Instructors" />} />
           <Route path="/courses"     element={<Placeholder title="Courses" />} />
           <Route path="/aircraft"    element={<Placeholder title="Aircraft" />} />
-          <Route path="/schedule"    element={<Placeholder title="Schedule" />} />
+          <Route path="/schedule"    element={<SchedulePage />} />
         </Route>
       </Routes>
     </BrowserRouter>

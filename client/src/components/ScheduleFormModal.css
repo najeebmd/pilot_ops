@@ -1,0 +1,45 @@
+.sched-modal {
+  max-width: 520px;
+}
+
+.activity-options {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+
+.activity-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  color: #64748b;
+  user-select: none;
+}
+
+.activity-option input[type="radio"] { display: none; }
+
+.activity-option--selected {
+  border-color: var(--act-color);
+  background: color-mix(in srgb, var(--act-color) 10%, white);
+  color: var(--act-color);
+  font-weight: 600;
+}
+
+.activity-option:hover:not(.activity-option--selected) {
+  border-color: #94a3b8;
+  color: #374151;
+}
+
+.duration-hint {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0.5rem 0 0;
+}
