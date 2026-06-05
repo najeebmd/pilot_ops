@@ -1,0 +1,52 @@
+.aircraft-modal {
+  max-width: 640px;
+}
+
+.form-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #94a3b8;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.form-section-label:first-of-type {
+  margin-top: 0;
+}
+
+.status-options {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+
+.status-option {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  color: #64748b;
+  user-select: none;
+}
+
+.status-option input[type="radio"] { display: none; }
+
+.status-option--selected {
+  border-color: var(--st-color);
+  background: color-mix(in srgb, var(--st-color) 10%, white);
+  color: var(--st-color);
+  font-weight: 600;
+}
+
+.status-option:hover:not(.status-option--selected) {
+  border-color: #94a3b8;
+  color: #374151;
+}
