@@ -7,6 +7,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum AircraftStatus {
+  READY
+  MAINTENANCE
+  NOT_AVAILABLE
+}
+
 enum ActivityType {
   INSTRUCTION
   OTHER
@@ -74,6 +80,25 @@ model UserRole {
   role         Role     @relation(fields: [role_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, role_id])
+}
+
+model Aircraft {
+  id                   Int            @id @default(autoincrement())
+  tail_number          String         @unique
+  serial_number        String         @unique
+  make                 String
+  model                String
+  year_built           Int
+  flight_hours         Float          @default(0)
+  fuel_capacity        Float?
+  weight               Float?
+  status               AircraftStatus @default(READY)
+  // current_airport_id will become a FK once the Airport table is created
+  current_airport_id   Int?
+  rental_rate          Float?
+  next_inspection_date DateTime?
+  date_created         DateTime       @default(now())
+  date_updated         DateTime       @updatedAt
 }
 
 model InstructorSchedule {

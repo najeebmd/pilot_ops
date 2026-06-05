@@ -1,4 +1,4 @@
-import { PrismaClient, RoleName } from '@prisma/client';
+import { PrismaClient, RoleName, AircraftStatus } from '@prisma/client';
 import { PrismaLibSql } from '@prisma/adapter-libsql';
 import bcrypt from 'bcrypt';
 
@@ -132,6 +132,34 @@ async function main() {
     });
   }
   console.log(`Seeded ${seededUsers.length} user roles.`);
+
+  // Aircraft
+  console.log('Seeding aircraft...');
+  const aircraft: {
+    tail_number: string; serial_number: string; make: string; model: string;
+    year_built: number; flight_hours: number; fuel_capacity: number; weight: number;
+    status: AircraftStatus; rental_rate: number; next_inspection_date: Date;
+  }[] = [
+    { tail_number: 'N1234A', serial_number: '17281234', make: 'Cessna',    model: '172S Skyhawk',   year_built: 2018, flight_hours: 1240.5, fuel_capacity: 56,  weight: 2550, status: 'READY',         rental_rate: 165, next_inspection_date: new Date('2026-09-15') },
+    { tail_number: 'N5678B', serial_number: '17285678', make: 'Cessna',    model: '172S Skyhawk',   year_built: 2019, flight_hours: 890.0,  fuel_capacity: 56,  weight: 2550, status: 'READY',         rental_rate: 165, next_inspection_date: new Date('2026-11-20') },
+    { tail_number: 'N9012C', serial_number: '28249012', make: 'Piper',     model: 'PA-28 Cherokee', year_built: 2016, flight_hours: 2100.3, fuel_capacity: 50,  weight: 2440, status: 'MAINTENANCE',    rental_rate: 155, next_inspection_date: new Date('2026-07-01') },
+    { tail_number: 'N3456D', serial_number: 'DA4223456', make: 'Diamond',  model: 'DA40-NG',        year_built: 2020, flight_hours: 520.8,  fuel_capacity: 42,  weight: 2535, status: 'READY',         rental_rate: 185, next_inspection_date: new Date('2027-01-10') },
+    { tail_number: 'N7890E', serial_number: 'DA4227890', make: 'Diamond',  model: 'DA40-NG',        year_built: 2021, flight_hours: 310.2,  fuel_capacity: 42,  weight: 2535, status: 'READY',         rental_rate: 185, next_inspection_date: new Date('2027-03-22') },
+    { tail_number: 'N2345F', serial_number: 'BE762345',  make: 'Beechcraft',model: 'G36 Bonanza',   year_built: 2017, flight_hours: 1780.6, fuel_capacity: 74,  weight: 3650, status: 'READY',         rental_rate: 240, next_inspection_date: new Date('2026-08-05') },
+    { tail_number: 'N6789G', serial_number: 'PA446789',  make: 'Piper',    model: 'PA-44 Seminole', year_built: 2015, flight_hours: 3200.0, fuel_capacity: 110, weight: 3800, status: 'READY',         rental_rate: 320, next_inspection_date: new Date('2026-10-30') },
+    { tail_number: 'N0123H', serial_number: 'CE5200123', make: 'Cessna',   model: '172R Skyhawk',   year_built: 2013, flight_hours: 4580.1, fuel_capacity: 56,  weight: 2550, status: 'NOT_AVAILABLE', rental_rate: 145, next_inspection_date: new Date('2026-06-15') },
+    { tail_number: 'N4567I', serial_number: 'DA4224567', make: 'Diamond',  model: 'DA20-C1',        year_built: 2022, flight_hours: 125.4,  fuel_capacity: 24,  weight: 1764, status: 'READY',         rental_rate: 130, next_inspection_date: new Date('2027-06-01') },
+    { tail_number: 'N8901J', serial_number: 'BE588901',  make: 'Beechcraft',model: 'C172 Musketeer', year_built: 2014, flight_hours: 2890.7, fuel_capacity: 60,  weight: 2750, status: 'MAINTENANCE',   rental_rate: 150, next_inspection_date: new Date('2026-07-20') },
+  ];
+
+  for (const a of aircraft) {
+    await prisma.aircraft.upsert({
+      where:  { tail_number: a.tail_number },
+      update: {},
+      create: a,
+    });
+  }
+  console.log(`Seeded ${aircraft.length} aircraft.`);
 }
 
 main()
