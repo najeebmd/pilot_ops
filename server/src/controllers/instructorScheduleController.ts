@@ -12,6 +12,43 @@ const includeInstructor = {
   },
 } as const;
 
+/** Check for overlapping schedule entries for the same instructor.
+ *  Two ranges overlap when: start1 < end2 AND start2 < end1
+ *  excludeId skips the current entry when updating.
+ */
+async function checkConflict(
+  instructor_id: number,
+  start: Date,
+  end: Date,
+  excludeId?: number,
+): Promise<string | null> {
+  const conflict = await prisma.instructorSchedule.findFirst({
+    where: {
+      instructor_id,
+      id:         excludeId ? { not: excludeId } : undefined,
+      date_start: { lt: end },
+      date_end:   { gt: start },
+    },
+    include: {
+      instructor: { select: { first_name: true, last_name: true } },
+    },
+  });
+
+  if (!conflict) return null;
+
+  const fmt = (d: Date) =>
+    d.toLocaleString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    });
+
+  return (
+    `Schedule conflict: ${conflict.instructor.first_name} ${conflict.instructor.last_name} ` +
+    `already has a "${conflict.activity_type}" entry from ` +
+    `${fmt(conflict.date_start)} to ${fmt(conflict.date_end)} (id: ${conflict.id})`
+  );
+}
+
 /** Verify the user exists and holds the INSTRUCTOR role */
 async function assertInstructor(instructor_id: number): Promise<string | null> {
   const user = await prisma.user.findUnique({
@@ -91,6 +128,9 @@ export async function createSchedule(req: Request, res: Response) {
   const err = await assertInstructor(Number(instructor_id));
   if (err) { res.status(422).json({ message: err }); return; }
 
+  const conflict = await checkConflict(Number(instructor_id), start, end);
+  if (conflict) { res.status(409).json({ message: conflict }); return; }
+
   const schedule = await prisma.instructorSchedule.create({
     data: {
       instructor_id: Number(instructor_id),
@@ -126,15 +166,20 @@ export async function updateSchedule(req: Request, res: Response) {
     return;
   }
 
+  const resolvedInstructorId = instructor_id ? Number(instructor_id) : existing.instructor_id;
+
   if (instructor_id && Number(instructor_id) !== existing.instructor_id) {
-    const err = await assertInstructor(Number(instructor_id));
+    const err = await assertInstructor(resolvedInstructorId);
     if (err) { res.status(422).json({ message: err }); return; }
   }
+
+  const conflict = await checkConflict(resolvedInstructorId, start, end, id);
+  if (conflict) { res.status(409).json({ message: conflict }); return; }
 
   const schedule = await prisma.instructorSchedule.update({
     where: { id },
     data: {
-      instructor_id: instructor_id ? Number(instructor_id) : undefined,
+      instructor_id: resolvedInstructorId,
       date_start:    start,
       date_end:      end,
       activity_type: activity_type ? (activity_type.toUpperCase() as ActivityType) : undefined,
