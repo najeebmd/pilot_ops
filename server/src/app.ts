@@ -17,12 +17,14 @@ import authRouter      from './routes/auth';
 import usersRouter     from './routes/users';
 import rolesRouter     from './routes/roles';
 import userLoginsRouter from './routes/userLogins';
-import userRolesRouter  from './routes/userRoles';
+import userRolesRouter            from './routes/userRoles';
+import instructorScheduleRouter   from './routes/instructorSchedule';
 
-app.use('/api/auth',                   authRouter);
-app.use('/api/users',                  usersRouter);
-app.use('/api/roles',                  rolesRouter);
-app.use('/api/users/:userId/login',    userLoginsRouter);
-app.use('/api/users/:userId/roles',    userRolesRouter);
+app.use('/api/auth',                      authRouter);
+app.use('/api/users',                     usersRouter);
+app.use('/api/roles',                     rolesRouter);
+app.use('/api/users/:userId/login',       userLoginsRouter);
+app.use('/api/users/:userId/roles',       userRolesRouter);
+app.use('/api/instructor-schedule',       instructorScheduleRouter);
 
 export default app;
