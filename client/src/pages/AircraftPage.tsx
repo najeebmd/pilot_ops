@@ -4,7 +4,7 @@ import { fetchAircraft, createAircraft, updateAircraft } from '../api/aircraft';
 import AircraftFormModal from '../components/AircraftFormModal';
 import './AircraftPage.css';
 
-type SortKey = 'tail_number' | 'make' | 'model' | 'year_built' | 'flight_hours' | 'status' | 'rental_rate' | 'next_inspection_date';
+type SortKey = 'tail_number' | 'make' | 'model' | 'year_built' | 'flight_hours' | 'status' | 'rental_rate' | 'next_inspection_date' | 'date_created' | 'date_updated';
 type SortOrder = 'asc' | 'desc';
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
@@ -32,6 +32,8 @@ const COLS: Col[] = [
   { key: 'status',               label: 'Status' },
   { key: 'rental_rate',          label: 'Rate/hr' },
   { key: 'next_inspection_date', label: 'Next Inspection' },
+  { key: 'date_created',         label: 'Created' },
+  { key: 'date_updated',         label: 'Updated' },
 ];
 
 function fmt(n: number | null, prefix = '', suffix = '', decimals = 0) {
@@ -176,6 +178,8 @@ export default function AircraftPage() {
                       : '—'}
                     {inspectionSoon && ' ⚠'}
                   </td>
+                  <td>{new Date(a.date_created).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                  <td>{new Date(a.date_updated).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</td>
                   <td className="td-actions" onClick={(e) => e.stopPropagation()}>
                     <button className="btn-icon-sm" title="Edit" onClick={() => setEditAircraft(a)}>✏️</button>
                   </td>

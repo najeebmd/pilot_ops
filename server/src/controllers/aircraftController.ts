@@ -5,7 +5,7 @@ import prisma from '../lib/prisma';
 const VALID_STATUSES = new Set<string>(['READY', 'MAINTENANCE', 'NOT_AVAILABLE']);
 const SORTABLE = new Set([
   'tail_number', 'serial_number', 'make', 'model', 'year_built',
-  'flight_hours', 'status', 'rental_rate', 'next_inspection_date', 'date_created',
+  'flight_hours', 'status', 'rental_rate', 'next_inspection_date', 'date_created', 'date_updated',
 ]);
 
 // ── GET /api/aircraft ─────────────────────────────────────────────────────────
