@@ -14,7 +14,11 @@ import './ReservationsPage.css';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function addDays(d: Date, n: number) { const r = new Date(d); r.setDate(r.getDate()+n); return r; }
 function sod(d: Date) { const r = new Date(d); r.setHours(0,0,0,0); return r; }
-function fmtTime(iso: string) { return new Date(iso).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',hour12:false}); }
+function fmtTime(iso: string) { return new Date(iso).toLocaleTimeString([],{hour:'numeric',minute:'2-digit',hour12:true}); }
+function fmtHour(h: number) {
+  const d = new Date(); d.setHours(h, 0, 0, 0);
+  return d.toLocaleTimeString([], { hour: 'numeric', hour12: true });
+}
 function fmtFullDate(d: Date) { return d.toLocaleDateString([],{weekday:'long',month:'long',day:'numeric',year:'numeric'}); }
 function overlaps(s1: Date, e1: Date, s2: Date, e2: Date) { return s1 < e2 && e1 > s2; }
 
@@ -183,7 +187,7 @@ export default function ReservationsPage() {
                     <th className="avail-th-instructor">Instructor</th>
                     {HOURS.map(h => (
                       <th key={h} className="avail-th-hour">
-                        {String(h).padStart(2,'0')}:00
+                        {fmtHour(h)}
                       </th>
                     ))}
                     <th className="avail-th-action"></th>
@@ -216,7 +220,7 @@ export default function ReservationsPage() {
                             className={cls}
                             onClick={() => canBook && openBooking(hour, instructor.id)}
                             title={canBook
-                              ? `Book ${instructor.first_name} at ${String(hour).padStart(2,'0')}:00`
+                              ? `Book ${instructor.first_name} at ${fmtHour(hour)}`
                               : status === 'booked' ? 'Already reserved'
                               : status === 'busy'   ? 'Unavailable'
                               : undefined}

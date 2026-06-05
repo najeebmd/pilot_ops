@@ -35,7 +35,7 @@ function sameDay(a: Date, b: Date) {
 }
 
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
 function fmtDateHeader(date: Date) {
