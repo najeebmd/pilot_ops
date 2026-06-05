@@ -2,6 +2,18 @@
   max-width: 520px;
 }
 
+/* Stack datetime fields in a single column so they get full width */
+.sched-modal .form-grid {
+  grid-template-columns: 1fr;
+}
+
+/* Ensure datetime-local inputs never overflow their container */
+.sched-modal .field input[type="datetime-local"] {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 .activity-options {
   display: flex;
   gap: 0.6rem;
