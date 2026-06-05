@@ -93,8 +93,6 @@ model Aircraft {
   fuel_capacity        Float?
   weight               Float?
   status               AircraftStatus @default(READY)
-  // current_airport_id will become a FK once the Airport table is created
-  current_airport_id   Int?
   rental_rate          Float?
   next_inspection_date DateTime?
   date_created         DateTime       @default(now())
