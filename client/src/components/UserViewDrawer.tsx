@@ -27,8 +27,8 @@ export default function UserViewDrawer({ user, onClose, onEdit }: Props) {
     .filter(Boolean).join(', ');
 
   return (
-    <div className="drawer-backdrop" onClick={onClose}>
-      <div className="drawer" onClick={(e) => e.stopPropagation()}>
+    <div className="drawer-backdrop">
+      <div className="drawer">
         <div className="drawer-header">
           <div>
             <h2>{user.first_name} {user.last_name}</h2>

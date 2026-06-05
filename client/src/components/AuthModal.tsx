@@ -76,8 +76,8 @@ export default function AuthModal({ onClose }: Props) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="auth-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop">
+      <div className="auth-modal">
 
         <div className="auth-modal-logo">
           <img src="/logo.svg" alt="PilotOps" width={48} height={48} />

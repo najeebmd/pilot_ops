@@ -8,8 +8,8 @@ interface Props {
 
 export default function ConfirmDialog({ message, onConfirm, onCancel }: Props) {
   return (
-    <div className="modal-backdrop" onClick={onCancel}>
-      <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop">
+      <div className="confirm-dialog">
         <p>{message}</p>
         <div className="confirm-actions">
           <button className="btn btn-secondary" onClick={onCancel}>Cancel</button>

@@ -80,8 +80,8 @@ export default function UserFormModal({ user, onSave, onClose }: Props) {
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop">
+      <div className="modal">
         <div className="modal-header">
           <h2>{user ? 'Edit User' : 'Add User'}</h2>
           <button className="btn-icon" onClick={onClose}>✕</button>

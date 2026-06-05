@@ -85,8 +85,8 @@ export default function ScheduleFormModal({ entry, instructorId, defaultStart, o
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="modal sched-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop">
+      <div className="modal sched-modal">
         <div className="modal-header">
           <h2>{entry ? 'Edit Schedule Entry' : 'New Schedule Entry'}</h2>
           <button className="btn-icon" onClick={onClose}>✕</button>
