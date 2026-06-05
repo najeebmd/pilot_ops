@@ -7,6 +7,12 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum ReservationStatus {
+  RESERVED
+  COMPLETED
+  CANCELED
+}
+
 enum AircraftStatus {
   READY
   MAINTENANCE
@@ -44,9 +50,11 @@ model User {
   date_created  DateTime    @default(now())
   date_updated  DateTime    @updatedAt
 
-  login              UserLogin?
-  roles              UserRole[]
+  login               UserLogin?
+  roles               UserRole[]
   instructor_schedule InstructorSchedule[]
+  reservations        Reservation[]        @relation("UserReservations")
+  instructor_reservations Reservation[]    @relation("InstructorReservations")
 }
 
 model Role {
@@ -82,6 +90,22 @@ model UserRole {
   @@unique([user_id, role_id])
 }
 
+model Reservation {
+  id            Int               @id @default(autoincrement())
+  user_id       Int
+  aircraft_id   Int?
+  instructor_id Int?
+  date_start    DateTime
+  date_end      DateTime
+  status        ReservationStatus @default(RESERVED)
+  date_created  DateTime          @default(now())
+  date_updated  DateTime          @updatedAt
+
+  user          User              @relation("UserReservations",       fields: [user_id],       references: [id], onDelete: Restrict)
+  aircraft      Aircraft?         @relation(                          fields: [aircraft_id],   references: [id], onDelete: SetNull)
+  instructor    User?             @relation("InstructorReservations", fields: [instructor_id], references: [id], onDelete: SetNull)
+}
+
 model Aircraft {
   id                   Int            @id @default(autoincrement())
   tail_number          String         @unique
@@ -97,6 +121,8 @@ model Aircraft {
   next_inspection_date DateTime?
   date_created         DateTime       @default(now())
   date_updated         DateTime       @updatedAt
+
+  reservations         Reservation[]
 }
 
 model InstructorSchedule {
