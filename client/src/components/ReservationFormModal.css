@@ -1,5 +1,16 @@
 .res-modal { max-width: 500px; }
 
+/* Ensure datetime-local inputs never overflow their grid column */
+.res-modal .form-grid {
+  grid-template-columns: 1fr;
+}
+
+.res-modal .field input[type="datetime-local"] {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 .admin-badge {
   margin-left: 0.5rem;
   font-size: 0.65rem;
