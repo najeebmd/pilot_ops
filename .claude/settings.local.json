@@ -29,7 +29,18 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('token:', d['token'][:40]+'...'\\); u=d['user']; print\\('user:', u['first_name'], u['last_name'], '| roles:', u['roles']\\)\")",
       "Bash(curl -s -X POST http://localhost:3001/api/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"james_mitchell\",\"password\":\"wrong\"}')",
       "Bash(pkill -f ts-node-dev)",
-      "Bash(curl -s \"http://localhost:3001/api/users?pageSize=2\")"
+      "Bash(curl -s \"http://localhost:3001/api/users?pageSize=2\")",
+      "Bash(curl -s -X POST http://localhost:3001/api/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"najeeb_admin\",\"password\":\"welcome123\"}')",
+      "Bash(curl -s http://localhost:3001/health)",
+      "Bash(curl -s http://localhost:5173/api/health)",
+      "Bash(curl -sv http://localhost:5173/api/health)",
+      "Bash(node -e ' *)",
+      "Bash(curl -s \"http://localhost:3001/api/users?pageSize=50\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(curl -s \"http://localhost:3001/api/aircraft/1\")",
+      "Bash(curl -v \"http://localhost:3001/api/aircraft/1\")",
+      "Bash(curl -s \"http://localhost:3001/api/aircraft\")"
     ]
   }
 }

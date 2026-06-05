@@ -10,7 +10,8 @@ const NAV_ITEMS = [
   { to: '/instructors', label: 'Instructors' },
   { to: '/courses',     label: 'Courses' },
   { to: '/aircraft',    label: 'Aircraft' },
-  { to: '/schedule',    label: 'Schedule' },
+  { to: '/schedule',     label: 'Schedule' },
+  { to: '/reservations', label: 'Reservations' },
 ];
 
 export default function Navbar() {

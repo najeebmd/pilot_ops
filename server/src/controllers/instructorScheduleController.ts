@@ -68,9 +68,19 @@ export async function getSchedules(req: Request, res: Response) {
   const sortBy    = SORTABLE.has(String(req.query.sortBy)) ? String(req.query.sortBy) : 'date_start';
   const sortOrder: 'asc' | 'desc' = req.query.sortOrder === 'desc' ? 'desc' : 'asc';
 
-  // Optional filter by instructor
   const instructorId = req.query.instructor_id ? Number(req.query.instructor_id) : undefined;
-  const where = instructorId ? { instructor_id: instructorId } : {};
+  const dateFrom     = req.query.date_from ? new Date(String(req.query.date_from)) : undefined;
+  const dateTo       = req.query.date_to   ? new Date(String(req.query.date_to))   : undefined;
+
+  const where: Record<string, unknown> = {};
+  if (instructorId)              where.instructor_id = instructorId;
+  // Return entries that overlap with [dateFrom, dateTo]
+  if (dateFrom || dateTo) {
+    where.date_start = dateTo   ? { lt: dateTo }   : undefined;
+    where.date_end   = dateFrom ? { gt: dateFrom } : undefined;
+    if (!where.date_start) delete where.date_start;
+    if (!where.date_end)   delete where.date_end;
+  }
 
   const [schedules, total] = await Promise.all([
     prisma.instructorSchedule.findMany({

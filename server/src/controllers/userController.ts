@@ -16,14 +16,21 @@ export async function getUsers(req: Request, res: Response) {
   const sortBy   = SORTABLE.has(String(req.query.sortBy)) ? String(req.query.sortBy) : 'date_created';
   const sortOrder: 'asc' | 'desc' = req.query.sortOrder === 'asc' ? 'asc' : 'desc';
 
+  // Optional ?role=INSTRUCTOR filter
+  const roleFilter = req.query.role ? String(req.query.role).toUpperCase() : undefined;
+  const where = roleFilter
+    ? { roles: { some: { role: { name: roleFilter as any } } } }
+    : {};
+
   const [users, total] = await Promise.all([
     prisma.user.findMany({
+      where,
       orderBy: { [sortBy]: sortOrder },
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: withRoles,
     }),
-    prisma.user.count(),
+    prisma.user.count({ where }),
   ]);
 
   res.json({ data: users, total, page, pageSize });

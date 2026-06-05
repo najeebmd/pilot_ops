@@ -148,6 +148,10 @@ export async function getReservations(req: Request, res: Response) {
   if (req.query.instructor_id) where.instructor_id = Number(req.query.instructor_id);
   if (req.query.status && VALID_STATUSES.has(String(req.query.status).toUpperCase()))
     where.status = String(req.query.status).toUpperCase();
+  const dateFrom = req.query.date_from ? new Date(String(req.query.date_from)) : undefined;
+  const dateTo   = req.query.date_to   ? new Date(String(req.query.date_to))   : undefined;
+  if (dateFrom) where.date_start = { ...(where.date_start as object ?? {}), lt: dateTo };
+  if (dateTo)   where.date_end   = { ...(where.date_end   as object ?? {}), gt: dateFrom };
 
   const [reservations, total] = await Promise.all([
     prisma.reservation.findMany({
