@@ -13,7 +13,8 @@ export interface FetchUsersParams {
   page?: number;
   pageSize?: number;
   sortBy?: string;
-  role?: string;
+  role?:   string;
+  search?: string;
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -24,6 +25,7 @@ export async function fetchUsers(params: FetchUsersParams = {}): Promise<UsersPa
   if (params.sortBy)    qs.set('sortBy',    params.sortBy);
   if (params.sortOrder) qs.set('sortOrder', params.sortOrder);
   if (params.role)      qs.set('role',      params.role);
+  if (params.search)    qs.set('search',    params.search);
   const res = await fetch(`${BASE}?${qs}`);
   if (!res.ok) throw new Error('Failed to fetch users');
   return res.json();

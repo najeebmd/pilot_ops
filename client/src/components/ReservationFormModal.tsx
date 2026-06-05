@@ -1,16 +1,15 @@
 import { useEffect, useState } from 'react';
 import type { ReservationFormData } from '../types/reservation';
 import type { Aircraft } from '../types/aircraft';
+import StudentSearch, { type StudentOption } from './StudentSearch';
 import './ReservationFormModal.css';
 
 interface Instructor { id: number; first_name: string; last_name: string; }
-interface Student    { id: number; first_name: string; last_name: string; email: string; }
 
 interface Props {
-  userId:               number;           // logged-in user's id (default reservation owner)
+  userId:               number;
   instructors:          Instructor[];
   aircraft:             Aircraft[];
-  students?:            Student[];        // only passed for admin/staff
   canSelectStudent?:    boolean;
   defaultStart?:        string;
   defaultInstructorId?: number | null;
@@ -25,19 +24,19 @@ function toLocalInput(iso: string) {
 }
 
 export default function ReservationFormModal({
-  userId, instructors, aircraft, students = [], canSelectStudent = false,
+  userId, instructors, aircraft, canSelectStudent = false,
   defaultStart, defaultInstructorId, onSave, onClose,
 }: Props) {
-  const [selectedUserId, setSelectedUserId] = useState<number>(userId);
-  const [instructorId,   setInstructorId]   = useState<number | ''>('');
-  const [aircraftId,     setAircraftId]     = useState<number | ''>('');
-  const [dateStart,      setDateStart]      = useState('');
-  const [dateEnd,        setDateEnd]        = useState('');
-  const [saving,         setSaving]         = useState(false);
-  const [error,          setError]          = useState('');
+  const [selectedStudent, setSelectedStudent] = useState<StudentOption | null>(null);
+  const [instructorId,    setInstructorId]    = useState<number | ''>('');
+  const [aircraftId,      setAircraftId]      = useState<number | ''>('');
+  const [dateStart,       setDateStart]       = useState('');
+  const [dateEnd,         setDateEnd]         = useState('');
+  const [saving,          setSaving]          = useState(false);
+  const [error,           setError]           = useState('');
 
   useEffect(() => {
-    setSelectedUserId(userId);
+    setSelectedStudent(null);
     setInstructorId(defaultInstructorId ?? '');
     setError('');
     if (defaultStart) {
@@ -55,13 +54,16 @@ export default function ReservationFormModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    if (canSelectStudent && !selectedStudent) {
+      setError('Please search for and select a student');
+      return;
+    }
     if (!dateStart || !dateEnd) { setError('Start and end date/time are required'); return; }
     if (new Date(dateEnd) <= new Date(dateStart)) { setError('End time must be after start time'); return; }
-    if (canSelectStudent && !selectedUserId) { setError('Please select a student'); return; }
     setSaving(true);
     try {
       await onSave({
-        user_id:       selectedUserId,
+        user_id:       canSelectStudent && selectedStudent ? selectedStudent.id : userId,
         instructor_id: instructorId ? Number(instructorId) : null,
         aircraft_id:   aircraftId   ? Number(aircraftId)   : null,
         date_start:    new Date(dateStart).toISOString(),
@@ -78,10 +80,6 @@ export default function ReservationFormModal({
     ? Math.round((new Date(dateEnd).getTime() - new Date(dateStart).getTime()) / 60000)
     : null;
 
-  const selectedStudent = canSelectStudent
-    ? students.find(s => s.id === selectedUserId)
-    : null;
-
   return (
     <div className="modal-backdrop">
       <div className="modal res-modal">
@@ -92,32 +90,19 @@ export default function ReservationFormModal({
 
         <form onSubmit={handleSubmit}>
 
-          {/* ── Student selector (admin/staff only) ── */}
+          {/* ── Student search (admin/staff only) ── */}
           {canSelectStudent && (
             <>
               <p className="form-section-label">
                 Student
                 <span className="admin-badge">Admin / Staff</span>
               </p>
-              <div className="field">
-                <select
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(Number(e.target.value))}
-                  required
-                >
-                  <option value="">— Select a student —</option>
-                  {students.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.first_name} {s.last_name} — {s.email}
-                    </option>
-                  ))}
-                </select>
-                {selectedStudent && (
-                  <p className="field-hint selected-student-hint">
-                    📋 Booking on behalf of <strong>{selectedStudent.first_name} {selectedStudent.last_name}</strong>
-                  </p>
-                )}
-              </div>
+              <StudentSearch value={selectedStudent} onChange={setSelectedStudent} />
+              {!selectedStudent && (
+                <p className="field-hint" style={{marginTop:'0.3rem'}}>
+                  Type at least 2 characters to search by name or email.
+                </p>
+              )}
             </>
           )}
 
