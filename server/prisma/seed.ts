@@ -160,6 +160,31 @@ async function main() {
     });
   }
   console.log(`Seeded ${aircraft.length} aircraft.`);
+
+  // InstructorRates — seed all current instructors with varied realistic rates
+  console.log('Seeding instructor rates...');
+  const instructorRole = await prisma.role.findUnique({ where: { name: 'INSTRUCTOR' } });
+  if (instructorRole) {
+    const instructorUsers = await prisma.userRole.findMany({
+      where: { role_id: instructorRole.id },
+      include: { user: true },
+    });
+
+    const rates = [85, 90, 95, 100, 105, 110, 115, 120, 125, 130, 95, 100, 110];
+
+    let seededRates = 0;
+    for (let i = 0; i < instructorUsers.length; i++) {
+      const userId = instructorUsers[i].user_id;
+      const rate   = rates[i % rates.length];
+      await prisma.instructorRate.upsert({
+        where:  { instructor_id: userId },
+        update: {},
+        create: { instructor_id: userId, regular_rate: rate },
+      });
+      seededRates++;
+    }
+    console.log(`Seeded ${seededRates} instructor rate(s).`);
+  }
 }
 
 main()
