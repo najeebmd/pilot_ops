@@ -68,7 +68,7 @@ const users = [
   },
 ];
 
-const roleNames: RoleName[] = ['STUDENT', 'GUEST', 'INSTRUCTOR', 'STAFF', 'ADMIN', 'OTHER'];
+const roleNames: RoleName[] = ['STUDENT', 'GUEST', 'INSTRUCTOR', 'PILOT', 'STAFF', 'ADMIN', 'OTHER'];
 
 // user index → role to assign
 const userRoleMap: Record<number, RoleName> = {

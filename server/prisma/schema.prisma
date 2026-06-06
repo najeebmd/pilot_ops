@@ -36,6 +36,7 @@ enum RoleName {
   STUDENT
   GUEST
   INSTRUCTOR
+  PILOT
   STAFF
   ADMIN
   OTHER
