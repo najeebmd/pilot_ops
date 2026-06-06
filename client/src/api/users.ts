@@ -2,6 +2,13 @@ import type { User, UserFormData } from '../types/user';
 
 const BASE = '/api/users';
 
+function authHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const token = localStorage.getItem('po_token');
+  return token
+    ? { Authorization: `Bearer ${token}`, ...extra }
+    : extra;
+}
+
 export interface UsersPage {
   data: User[];
   total: number;
@@ -26,13 +33,13 @@ export async function fetchUsers(params: FetchUsersParams = {}): Promise<UsersPa
   if (params.sortOrder) qs.set('sortOrder', params.sortOrder);
   if (params.role)      qs.set('role',      params.role);
   if (params.search)    qs.set('search',    params.search);
-  const res = await fetch(`${BASE}?${qs}`);
+  const res = await fetch(`${BASE}?${qs}`, { headers: authHeaders() });
   if (!res.ok) throw new Error('Failed to fetch users');
   return res.json();
 }
 
 export async function fetchUser(id: number): Promise<User> {
-  const res = await fetch(`${BASE}/${id}`);
+  const res = await fetch(`${BASE}/${id}`, { headers: authHeaders() });
   if (!res.ok) throw new Error('User not found');
   return res.json();
 }
@@ -40,7 +47,7 @@ export async function fetchUser(id: number): Promise<User> {
 export async function createUser(data: UserFormData): Promise<User> {
   const res = await fetch(BASE, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -53,7 +60,7 @@ export async function createUser(data: UserFormData): Promise<User> {
 export async function updateUser(id: number, data: Partial<UserFormData>): Promise<User> {
   const res = await fetch(`${BASE}/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -64,6 +71,9 @@ export async function updateUser(id: number, data: Partial<UserFormData>): Promi
 }
 
 export async function deleteUser(id: number): Promise<void> {
-  const res = await fetch(`${BASE}/${id}`, { method: 'DELETE' });
+  const res = await fetch(`${BASE}/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
   if (!res.ok) throw new Error('Failed to delete user');
 }

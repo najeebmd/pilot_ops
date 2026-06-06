@@ -1,4 +1,6 @@
 import { Router } from 'express';
+import { authenticate } from '../middleware/authenticate';
+import { authorizeRoles } from '../middleware/authorize';
 import {
   getUsers,
   getUserById,
@@ -9,9 +11,12 @@ import {
 
 const router = Router();
 
-router.get('/', getUsers);
+// All user-management endpoints require a valid token + Admin or Staff role
+router.use(authenticate, authorizeRoles('ADMIN', 'STAFF'));
+
+router.get('/',    getUsers);
 router.get('/:id', getUserById);
-router.post('/', createUser);
+router.post('/',   createUser);
 router.put('/:id', updateUser);
 router.delete('/:id', deleteUser);
 
