@@ -61,6 +61,7 @@ model User {
   login               UserLogin?
   roles               UserRole[]
   instructor_schedule InstructorSchedule[]
+  instructor_rate     InstructorRate?
   reservations        Reservation[]        @relation("UserReservations")
   instructor_reservations Reservation[]    @relation("InstructorReservations")
 }
@@ -150,6 +151,16 @@ model AircraftSchedule {
 
   aircraft       Aircraft             @relation(fields: [aircraft_id],   references: [id], onDelete: Cascade)
   reservation    Reservation?         @relation(fields: [reservation_id], references: [id], onDelete: Cascade)
+}
+
+model InstructorRate {
+  id            Int      @id @default(autoincrement())
+  instructor_id Int      @unique
+  regular_rate  Float
+  date_created  DateTime @default(now())
+  date_updated  DateTime @updatedAt
+
+  instructor    User     @relation(fields: [instructor_id], references: [id], onDelete: Cascade)
 }
 
 model InstructorSchedule {
