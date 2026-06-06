@@ -109,7 +109,7 @@ async function main() {
   console.log('Seeding user logins...');
   for (const user of seededUsers) {
     const username = user.email.split('@')[0].replace(/\./g, '_');
-    const password = await bcrypt.hash('Password1!', 10);
+    const password = await bcrypt.hash('welcome123', 10);
     await prisma.userLogin.upsert({
       where: { user_id: user.id },
       update: {},
