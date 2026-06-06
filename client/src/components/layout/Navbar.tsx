@@ -6,7 +6,7 @@ import './Navbar.css';
 
 const NAV_ITEMS = [
   { to: '/',            label: 'Home' },
-  { to: '/students',    label: 'Students' },
+  { to: '/students',    label: 'Users' },
   { to: '/instructors', label: 'Instructors' },
   { to: '/courses',     label: 'Courses' },
   { to: '/aircraft',              label: 'Aircraft' },
