@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { User, UserFormData } from '../types/user';
+import { useAuth } from '../context/AuthContext';
 import './UserFormModal.css';
 
 interface Role { id: number; name: string; }
@@ -19,6 +20,11 @@ interface Props {
 }
 
 export default function UserFormModal({ user, canResetPassword, onSave, onClose }: Props) {
+  const { user: authUser } = useAuth();
+  const isAdmin = authUser?.roles.includes('ADMIN') ?? false;
+  // Staff can manage users but cannot assign or remove the ADMIN role
+  const isRestrictedRole = (roleName: string) => roleName === 'ADMIN' && !isAdmin;
+
   const isEdit = !!user;
   const [form, setForm]         = useState<UserFormData>(EMPTY);
   const [roles, setRoles]       = useState<Role[]>([]);
@@ -185,15 +191,22 @@ export default function UserFormModal({ user, canResetPassword, onSave, onClose 
               <label>Roles</label>
               <div className="role-checkboxes">
                 {roles.map((role) => {
-                  const checked = form.role_ids.includes(role.id);
+                  const checked   = form.role_ids.includes(role.id);
+                  const restricted = isRestrictedRole(role.name);
                   return (
-                    <label key={role.id} className={`role-checkbox${checked ? ' role-checkbox--checked' : ''}`}>
+                    <label
+                      key={role.id}
+                      className={`role-checkbox${checked ? ' role-checkbox--checked' : ''}${restricted ? ' role-checkbox--locked' : ''}`}
+                      title={restricted ? 'Only Admins can assign or remove the Admin role' : undefined}
+                    >
                       <input
                         type="checkbox"
                         checked={checked}
-                        onChange={() => toggleRole(role.id)}
+                        disabled={restricted}
+                        onChange={() => !restricted && toggleRole(role.id)}
                       />
                       {role.name}
+                      {restricted && <span className="role-lock">🔒</span>}
                     </label>
                   );
                 })}
