@@ -45,7 +45,8 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(f'  {u[\\\\\"first_name\\\\\"]} {u[\\\\\"last_name\\\\\"]} <{u[\\\\\"email\\\\\"]}>'\\) for u in d['data']]\")",
       "Bash(curl -s \"http://localhost:3001/api/users?role=STUDENT&search=chen&pageSize=5\")",
       "Bash(curl -s \"http://localhost:3001/api/users?role=STUDENT&search=example.com&pageSize=5\")",
-      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'  {d[\\\\\"total\\\\\"]} results'\\)\")"
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'  {d[\\\\\"total\\\\\"]} results'\\)\")",
+      "Bash(curl -s \"http://localhost:3001/api/aircraft-schedule?aircraft_id=2\")"
     ]
   }
 }

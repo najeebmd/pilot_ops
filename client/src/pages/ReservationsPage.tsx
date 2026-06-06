@@ -136,13 +136,26 @@ export default function ReservationsPage() {
     const slotEnd   = new Date(activeDay); slotEnd.setHours(  hour+1, 0, 0, 0);
     if (slotEnd.getTime() < Date.now()) return 'past';
     if (ac.status !== 'READY') return 'unavailable';
+
+    // Primary: check AircraftSchedule (covers MAINTENANCE, NOT_AVAILABLE, RESERVED blocks)
     const entry = aircraftSchedules.find(e =>
       e.aircraft_id === ac.id &&
       overlaps(new Date(e.date_start), new Date(e.date_end), slotStart, slotEnd)
     );
-    if (!entry) return 'available';
-    if (entry.activity_type === 'RESERVED') return 'reserved';
-    return 'unavailable'; // MAINTENANCE, NOT_AVAILABLE, OTHER
+    if (entry) {
+      return entry.activity_type === 'RESERVED' ? 'reserved' : 'unavailable';
+    }
+
+    // Fallback: check Reservation table directly (catches any reservation without a
+    // linked AircraftSchedule entry, e.g. created before the auto-creation logic)
+    const directBooking = reservations.find(r =>
+      r.aircraft_id === ac.id &&
+      r.status !== 'CANCELED' &&
+      overlaps(new Date(r.date_start), new Date(r.date_end), slotStart, slotEnd)
+    );
+    if (directBooking) return 'reserved';
+
+    return 'available';
   }
 
   function findAircraftReservation(ac: Aircraft, hour: number): Reservation | null {
