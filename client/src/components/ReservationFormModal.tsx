@@ -117,7 +117,7 @@ export default function ReservationFormModal({
           {canSelectStudent && !isEditing && (
             <>
               <p className="form-section-label">
-                Student
+                Student / Pilot
                 <span className="admin-badge">Admin / Staff</span>
               </p>
               <StudentSearch value={selectedStudent} onChange={setSelectedStudent} />
