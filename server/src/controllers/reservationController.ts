@@ -34,6 +34,19 @@ async function assertInstructor(instructor_id: number): Promise<string | null> {
   return null;
 }
 
+/** The user being booked must hold STUDENT or PILOT role. */
+async function assertStudentOrPilot(user_id: number): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: user_id },
+    include: { roles: { include: { role: true } } },
+  });
+  if (!user) return 'User not found';
+  const allowed = user.roles.some(r => ['STUDENT', 'PILOT', 'INSTRUCTOR'].includes(r.role.name));
+  if (!allowed)
+    return `${user.first_name} ${user.last_name} must have the Student or Pilot role to make a reservation`;
+  return null;
+}
+
 /** Reserving an aircraft without an instructor requires the PILOT role. */
 async function assertPilotForSoloAircraft(user_id: number): Promise<string | null> {
   const user = await prisma.user.findUnique({
@@ -219,8 +232,8 @@ export async function createReservation(req: Request, res: Response) {
     res.status(400).json({ message: `status must be one of: ${[...VALID_STATUSES].join(', ')}` }); return;
   }
 
-  const userExists = await prisma.user.findUnique({ where: { id: Number(user_id) } });
-  if (!userExists) { res.status(404).json({ message: 'User not found' }); return; }
+  const studentOrPilotErr = await assertStudentOrPilot(Number(user_id));
+  if (studentOrPilotErr) { res.status(422).json({ message: studentOrPilotErr }); return; }
 
   // Aircraft checks via AircraftSchedule
   if (aircraft_id) {
@@ -295,6 +308,10 @@ export async function updateReservation(req: Request, res: Response) {
     res.status(400).json({ message: 'At least one of aircraft or instructor must be selected' });
     return;
   }
+
+  const resolvedUserId = user_id ? Number(user_id) : existing.user_id;
+  const spErr = await assertStudentOrPilot(resolvedUserId);
+  if (spErr) { res.status(422).json({ message: spErr }); return; }
   const resolvedStatus       = status ? String(status).toUpperCase() as ReservationStatus : existing.status;
   const isCanceling          = resolvedStatus === 'CANCELED' && existing.status !== 'CANCELED';
 
@@ -304,7 +321,6 @@ export async function updateReservation(req: Request, res: Response) {
     if (conflict) { res.status(409).json({ message: conflict }); return; }
 
     // Solo aircraft reservation requires PILOT role
-    const resolvedUserId = user_id ? Number(user_id) : existing.user_id;
     if (!resolvedInstructorId) {
       const pilotErr = await assertPilotForSoloAircraft(resolvedUserId);
       if (pilotErr) { res.status(403).json({ message: pilotErr }); return; }
