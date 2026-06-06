@@ -63,6 +63,23 @@ export default function ReservationsPage() {
   function showAllInstructors()  { setHiddenInstructors(new Set()); }
   function hideAllInstructors()  { setHiddenInstructors(new Set(instructors.map(i => i.id))); }
 
+  // Aircraft visibility filter
+  const [hiddenAircraft, setHiddenAircraft] = useState<Set<number>>(new Set());
+  function toggleAircraft(id: number) {
+    setHiddenAircraft(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function showAllAircraft() { setHiddenAircraft(new Set()); }
+  function hideAllAircraft() { setHiddenAircraft(new Set(allAircraft.map(a => a.id))); }
+
+  // Sorted aircraft: by make, then model, then tail number
+  const sortedAircraft = [...allAircraft].sort((a, b) =>
+    `${a.make} ${a.model} ${a.tail_number}`.localeCompare(`${b.make} ${b.model} ${b.tail_number}`)
+  );
+
   const [bookingSlot,  setBookingSlot]  = useState<{start: string; instructorId: number|null; aircraftId?: number|null}|null>(null);
   const [editTarget,   setEditTarget]   = useState<Reservation|null>(null);
   const [cancelTarget, setCancelTarget] = useState<Reservation|null>(null);
@@ -431,6 +448,40 @@ export default function ReservationsPage() {
             {!isToday && <button className="btn btn-secondary btn-today" onClick={() => setActiveDay(sod(new Date()))}>Today</button>}
           </div>
 
+          {/* Aircraft filter */}
+          {sortedAircraft.length > 0 && (
+            <div className="instructor-filter">
+              <div className="instructor-filter-header">
+                <span className="instructor-filter-label">
+                  Aircraft
+                  <span className="instructor-filter-count">
+                    {sortedAircraft.length - hiddenAircraft.size} of {sortedAircraft.length} shown
+                  </span>
+                </span>
+                <div className="instructor-filter-actions">
+                  <button className="btn-filter-ctrl" onClick={showAllAircraft} disabled={hiddenAircraft.size === 0}>Show All</button>
+                  <button className="btn-filter-ctrl" onClick={hideAllAircraft} disabled={hiddenAircraft.size === sortedAircraft.length}>Hide All</button>
+                </div>
+              </div>
+              <div className="instructor-toggles">
+                {sortedAircraft.map(ac => {
+                  const visible = !hiddenAircraft.has(ac.id);
+                  return (
+                    <button
+                      key={ac.id}
+                      className={`instructor-toggle${visible ? ' instructor-toggle--on' : ' instructor-toggle--off'}`}
+                      onClick={() => toggleAircraft(ac.id)}
+                      title={visible ? `Hide ${ac.tail_number}` : `Show ${ac.tail_number}`}
+                    >
+                      <span className="instructor-toggle-dot" />
+                      {ac.tail_number} — {ac.make} {ac.model}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="cal-legend">
             <span className="cal-legend-item cal-legend-item--free">Available — click to book</span>
             <span className="cal-legend-item cal-legend-item--booked">Reserved</span>
@@ -440,8 +491,10 @@ export default function ReservationsPage() {
 
           {loading ? (
             <p className="res-state">Loading…</p>
-          ) : allAircraft.length === 0 ? (
+          ) : sortedAircraft.length === 0 ? (
             <p className="res-state">No aircraft found.</p>
+          ) : hiddenAircraft.size === sortedAircraft.length ? (
+            <p className="res-state">All aircraft hidden. Use the filter above to show aircraft.</p>
           ) : (
             <div className="big-table-wrapper" style={{marginBottom:'1.5rem'}}>
               <table className="avail-table">
@@ -455,7 +508,7 @@ export default function ReservationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {allAircraft.map(ac => (
+                  {sortedAircraft.filter(ac => !hiddenAircraft.has(ac.id)).map(ac => (
                     <tr key={ac.id} className="avail-row">
                       <td className="avail-td-instructor">
                         <div className="avail-instructor-info">
