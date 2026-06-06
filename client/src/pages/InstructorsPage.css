@@ -18,6 +18,9 @@
   position: relative;
 }
 
+.instr-card--static { cursor: default; }
+.instr-card--static:hover { box-shadow: none; border-color: #e2e8f0; transform: none; }
+
 .instr-card:hover {
   box-shadow: 0 4px 16px rgba(0,0,0,0.08);
   border-color: #c7d2fe;
