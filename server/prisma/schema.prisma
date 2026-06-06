@@ -25,6 +25,11 @@ enum ActivityType {
   NOT_AVAILABLE
 }
 
+enum InstructorStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum AircraftActivityType {
   MAINTENANCE
   NOT_AVAILABLE
@@ -61,7 +66,7 @@ model User {
   login               UserLogin?
   roles               UserRole[]
   instructor_schedule InstructorSchedule[]
-  instructor_rate     InstructorRate?
+  instructor          Instructor?
   reservations        Reservation[]        @relation("UserReservations")
   instructor_reservations Reservation[]    @relation("InstructorReservations")
 }
@@ -153,14 +158,15 @@ model AircraftSchedule {
   reservation    Reservation?         @relation(fields: [reservation_id], references: [id], onDelete: Cascade)
 }
 
-model InstructorRate {
-  id            Int      @id @default(autoincrement())
-  instructor_id Int      @unique
+model Instructor {
+  id            Int              @id @default(autoincrement())
+  instructor_id Int              @unique
   regular_rate  Float
-  date_created  DateTime @default(now())
-  date_updated  DateTime @updatedAt
+  status        InstructorStatus @default(ACTIVE)
+  date_created  DateTime         @default(now())
+  date_updated  DateTime         @updatedAt
 
-  instructor    User     @relation(fields: [instructor_id], references: [id], onDelete: Cascade)
+  user          User             @relation(fields: [instructor_id], references: [id], onDelete: Cascade)
 }
 
 model InstructorSchedule {

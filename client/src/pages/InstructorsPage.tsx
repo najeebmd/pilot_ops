@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { fetchUsers } from '../api/users';
 import type { User } from '../types/user';
+import { useAuth } from '../context/AuthContext';
+import InstructorEditModal from '../components/InstructorEditModal';
 import './InstructorsPage.css';
 
-interface RateMap { [instructor_id: number]: number }
+interface InstructorInfo { rate: number | null; status: string }
+interface RateMap { [instructor_id: number]: InstructorInfo }
 
 function authHeaders(): Record<string, string> {
   const t = localStorage.getItem('po_token');
@@ -14,14 +17,29 @@ async function fetchRates(): Promise<RateMap> {
   try {
     const res = await fetch('/api/instructor-rates', { headers: authHeaders() });
     if (!res.ok) return {};
-    const data: { instructor_id: number; regular_rate: number }[] = await res.json();
-    return Object.fromEntries(data.map(r => [r.instructor_id, r.regular_rate]));
+    const data: { instructor_id: number; regular_rate: number; status: string }[] = await res.json();
+    return Object.fromEntries(data.map(r => [r.instructor_id, { rate: r.regular_rate, status: r.status }]));
   } catch {
     return {};
   }
 }
 
+async function putInstructorInfo(instructorId: number, rate: number, status: string): Promise<void> {
+  const res = await fetch(`/api/instructor-rates/${instructorId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ regular_rate: rate, status }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message || 'Failed to save');
+  }
+}
+
 export default function InstructorsPage() {
+  const { user }   = useAuth();
+  const canEdit    = ['ADMIN', 'STAFF'].some(r => user?.roles.includes(r));
+
   const [instructors, setInstructors] = useState<User[]>([]);
   const [rates,       setRates]       = useState<RateMap>({});
   const [total,       setTotal]       = useState(0);
@@ -29,6 +47,7 @@ export default function InstructorsPage() {
   const [search,      setSearch]      = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [debounce,    setDebounce]    = useState<ReturnType<typeof setTimeout>|null>(null);
+  const [editing,     setEditing]     = useState<User | null>(null);
 
   useEffect(() => { load(); }, [search]);
 
@@ -51,6 +70,13 @@ export default function InstructorsPage() {
     setSearchInput(v);
     if (debounce) clearTimeout(debounce);
     setDebounce(setTimeout(() => setSearch(v.trim()), 350));
+  }
+
+  async function handleSave(rate: number, status: string) {
+    if (!editing) return;
+    await putInstructorInfo(editing.id, rate, status);
+    setEditing(null);
+    await load();
   }
 
   return (
@@ -81,17 +107,26 @@ export default function InstructorsPage() {
       ) : (
         <div className="instr-grid">
           {instructors.map(instr => {
-            const rate = rates[instr.id];
+            const info     = rates[instr.id];
+            const inactive = info?.status === 'INACTIVE';
             return (
-              <div key={instr.id} className="instr-card instr-card--static">
+              <div
+                key={instr.id}
+                className={`instr-card${canEdit ? '' : ' instr-card--static'}${inactive ? ' instr-card--inactive' : ''}`}
+                onClick={canEdit ? () => setEditing(instr) : undefined}
+                title={canEdit ? 'Click to edit' : undefined}
+              >
                 <div className="instr-card-avatar">
                   {instr.first_name[0]}{instr.last_name[0]}
                 </div>
                 <div className="instr-card-body">
-                  <p className="instr-card-name">{instr.first_name} {instr.last_name}</p>
-                  {rate != null && (
+                  <div className="instr-card-name-row">
+                    <p className="instr-card-name">{instr.first_name} {instr.last_name}</p>
+                    {inactive && <span className="instr-status-badge">Inactive</span>}
+                  </div>
+                  {info?.rate != null && (
                     <span className="instr-rate-badge">
-                      ${rate.toFixed(2)}<span className="instr-rate-unit">/hr</span>
+                      ${info.rate.toFixed(2)}<span className="instr-rate-unit">/hr</span>
                     </span>
                   )}
                 </div>
@@ -99,6 +134,16 @@ export default function InstructorsPage() {
             );
           })}
         </div>
+      )}
+
+      {editing && (
+        <InstructorEditModal
+          instructor={editing}
+          rate={rates[editing.id]?.rate ?? null}
+          status={rates[editing.id]?.status ?? 'ACTIVE'}
+          onSave={handleSave}
+          onClose={() => setEditing(null)}
+        />
       )}
     </div>
   );

@@ -21,6 +21,32 @@
 .instr-card--static { cursor: default; }
 .instr-card--static:hover { box-shadow: none; border-color: #e2e8f0; transform: none; }
 
+.instr-card--inactive { background: #f8fafc; border-color: #e2e8f0; opacity: 0.72; }
+.instr-card--inactive .instr-card-avatar { background: #94a3b8; }
+.instr-card--inactive .instr-card-name   { color: #64748b; }
+
+.instr-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.15rem;
+}
+.instr-card-name-row .instr-card-name { margin-bottom: 0; }
+
+.instr-status-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
 .instr-card:hover {
   box-shadow: 0 4px 16px rgba(0,0,0,0.08);
   border-color: #c7d2fe;

@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
+import { InstructorStatus } from '@prisma/client';
 import prisma from '../lib/prisma';
 
 const includeInstructor = {
-  instructor: { select: { id: true, first_name: true, last_name: true, email: true } },
+  user: { select: { id: true, first_name: true, last_name: true, email: true } },
 } as const;
 
 async function assertInstructor(instructor_id: number): Promise<string | null> {
@@ -18,9 +19,9 @@ async function assertInstructor(instructor_id: number): Promise<string | null> {
 
 // GET /api/instructor-rates
 export async function getRates(_req: Request, res: Response) {
-  const rates = await prisma.instructorRate.findMany({
+  const rates = await prisma.instructor.findMany({
     include: includeInstructor,
-    orderBy: { instructor: { first_name: 'asc' } },
+    orderBy: { user: { first_name: 'asc' } },
   });
   res.json(rates);
 }
@@ -28,7 +29,7 @@ export async function getRates(_req: Request, res: Response) {
 // GET /api/instructor-rates/:instructorId
 export async function getRateByInstructor(req: Request, res: Response) {
   const instructor_id = Number(req.params.instructorId);
-  const rate = await prisma.instructorRate.findUnique({
+  const rate = await prisma.instructor.findUnique({
     where: { instructor_id },
     include: includeInstructor,
   });
@@ -55,13 +56,13 @@ export async function createRate(req: Request, res: Response) {
   const err = await assertInstructor(Number(instructor_id));
   if (err) { res.status(422).json({ message: err }); return; }
 
-  const existing = await prisma.instructorRate.findUnique({ where: { instructor_id: Number(instructor_id) } });
+  const existing = await prisma.instructor.findUnique({ where: { instructor_id: Number(instructor_id) } });
   if (existing) {
     res.status(409).json({ message: 'A rate already exists for this instructor. Use PUT to update it.' });
     return;
   }
 
-  const rate = await prisma.instructorRate.create({
+  const rate = await prisma.instructor.create({
     data: { instructor_id: Number(instructor_id), regular_rate: Number(regular_rate) },
     include: includeInstructor,
   });
@@ -71,26 +72,34 @@ export async function createRate(req: Request, res: Response) {
 // PUT /api/instructor-rates/:instructorId
 export async function updateRate(req: Request, res: Response) {
   const instructor_id = Number(req.params.instructorId);
-  const { regular_rate } = req.body;
+  const { regular_rate, status } = req.body;
 
-  if (regular_rate == null) {
-    res.status(400).json({ message: 'regular_rate is required' });
+  if (regular_rate == null && status == null) {
+    res.status(400).json({ message: 'At least one of regular_rate or status is required' });
     return;
   }
-  if (isNaN(Number(regular_rate)) || Number(regular_rate) < 0) {
+  if (regular_rate != null && (isNaN(Number(regular_rate)) || Number(regular_rate) < 0)) {
     res.status(400).json({ message: 'regular_rate must be a non-negative number' });
     return;
   }
+  if (status != null && !['ACTIVE', 'INACTIVE'].includes(status)) {
+    res.status(400).json({ message: 'status must be ACTIVE or INACTIVE' });
+    return;
+  }
 
-  const existing = await prisma.instructorRate.findUnique({ where: { instructor_id } });
+  const existing = await prisma.instructor.findUnique({ where: { instructor_id } });
   if (!existing) {
     res.status(404).json({ message: 'No rate found for this instructor' });
     return;
   }
 
-  const rate = await prisma.instructorRate.update({
+  const data: { regular_rate?: number; status?: InstructorStatus } = {};
+  if (regular_rate != null) data.regular_rate = Number(regular_rate);
+  if (status != null) data.status = status as InstructorStatus;
+
+  const rate = await prisma.instructor.update({
     where: { instructor_id },
-    data:  { regular_rate: Number(regular_rate) },
+    data,
     include: includeInstructor,
   });
   res.json(rate);
@@ -99,11 +108,11 @@ export async function updateRate(req: Request, res: Response) {
 // DELETE /api/instructor-rates/:instructorId
 export async function deleteRate(req: Request, res: Response) {
   const instructor_id = Number(req.params.instructorId);
-  const existing = await prisma.instructorRate.findUnique({ where: { instructor_id } });
+  const existing = await prisma.instructor.findUnique({ where: { instructor_id } });
   if (!existing) {
     res.status(404).json({ message: 'No rate found for this instructor' });
     return;
   }
-  await prisma.instructorRate.delete({ where: { instructor_id } });
+  await prisma.instructor.delete({ where: { instructor_id } });
   res.status(204).send();
 }
