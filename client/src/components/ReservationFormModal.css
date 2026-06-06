@@ -1,5 +1,45 @@
 .res-modal { max-width: 500px; }
 
+.res-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.res-delete-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.res-delete-confirm-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #dc2626;
+  white-space: nowrap;
+}
+
+.res-modal-right {
+  display: flex;
+  gap: 0.75rem;
+  margin-left: auto;
+}
+
+.btn-danger-outline {
+  background: none;
+  border: 1.5px solid #dc2626;
+  color: #dc2626;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-danger-outline:hover { background: #fef2f2; }
+
 /* Ensure datetime-local inputs never overflow their grid column */
 .res-modal .form-grid {
   grid-template-columns: 1fr;

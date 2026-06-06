@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { fetchReservations, createReservation, updateReservation } from '../api/reservations';
+import { fetchReservations, createReservation, updateReservation, deleteReservation } from '../api/reservations';
 import { fetchAircraft } from '../api/aircraft';
 import { fetchSchedule } from '../api/schedule';
 import { fetchUsers } from '../api/users';
@@ -135,6 +135,14 @@ export default function ReservationsPage() {
   async function handleEdit(data: import('../types/reservation').ReservationFormData) {
     if (!editTarget) return;
     await updateReservation(editTarget.id, data);
+    setEditTarget(null);
+    await loadDay();
+    await loadMine();
+  }
+
+  async function handleDeleteReservation() {
+    if (!editTarget) return;
+    await deleteReservation(editTarget.id);
     setEditTarget(null);
     await loadDay();
     await loadMine();
@@ -377,6 +385,7 @@ export default function ReservationsPage() {
           instructors={instructors}
           aircraft={allAircraft}
           existingReservation={editTarget}
+          onDelete={isAdminOrStaff ? handleDeleteReservation : undefined}
           onSave={handleEdit}
           onClose={() => setEditTarget(null)}
         />

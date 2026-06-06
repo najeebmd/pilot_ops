@@ -14,6 +14,7 @@ interface Props {
   defaultStart?:        string;
   defaultInstructorId?: number | null;
   existingReservation?: Reservation | null;   // when set → edit mode
+  onDelete?: () => Promise<void>;             // admin/staff only
   onSave:  (data: ReservationFormData) => Promise<void>;
   onClose: () => void;
 }
@@ -26,20 +27,23 @@ function toLocalInput(iso: string) {
 
 export default function ReservationFormModal({
   userId, instructors, aircraft, canSelectStudent = false,
-  defaultStart, defaultInstructorId, existingReservation, onSave, onClose,
+  defaultStart, defaultInstructorId, existingReservation, onDelete, onSave, onClose,
 }: Props) {
   const isEditing = !!existingReservation;
 
-  const [selectedStudent, setSelectedStudent] = useState<StudentOption | null>(null);
-  const [instructorId,    setInstructorId]    = useState<number | ''>('');
-  const [aircraftId,      setAircraftId]      = useState<number | ''>('');
-  const [dateStart,       setDateStart]       = useState('');
-  const [dateEnd,         setDateEnd]         = useState('');
-  const [saving,          setSaving]          = useState(false);
-  const [error,           setError]           = useState('');
+  const [selectedStudent,  setSelectedStudent]  = useState<StudentOption | null>(null);
+  const [instructorId,     setInstructorId]     = useState<number | ''>('');
+  const [aircraftId,       setAircraftId]       = useState<number | ''>('');
+  const [dateStart,        setDateStart]        = useState('');
+  const [dateEnd,          setDateEnd]          = useState('');
+  const [saving,           setSaving]           = useState(false);
+  const [deleting,         setDeleting]         = useState(false);
+  const [confirmDelete,    setConfirmDelete]    = useState(false);
+  const [error,            setError]            = useState('');
 
   useEffect(() => {
     setSelectedStudent(null);
+    setConfirmDelete(false);
     setError('');
 
     if (existingReservation) {
@@ -181,11 +185,44 @@ export default function ReservationFormModal({
 
           {error && <p className="form-error">{error}</p>}
 
-          <div className="modal-footer">
-            <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Saving…' : isEditing ? 'Save Changes' : 'Confirm Reservation'}
-            </button>
+          <div className="modal-footer res-modal-footer">
+            {/* Delete — admin/staff edit mode only */}
+            {isEditing && onDelete && (
+              <div className="res-delete-group">
+                {confirmDelete ? (
+                  <>
+                    <span className="res-delete-confirm-label">Delete this reservation?</span>
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      disabled={deleting}
+                      onClick={async () => {
+                        setDeleting(true);
+                        try { await onDelete(); }
+                        catch (e) { setError(e instanceof Error ? e.message : 'Delete failed'); setConfirmDelete(false); }
+                        finally { setDeleting(false); }
+                      }}
+                    >
+                      {deleting ? 'Deleting…' : 'Yes, Delete'}
+                    </button>
+                    <button type="button" className="btn btn-secondary" onClick={() => setConfirmDelete(false)}>
+                      No, Keep
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" className="btn btn-danger-outline" onClick={() => setConfirmDelete(true)}>
+                    🗑 Delete
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="res-modal-right">
+              <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+              <button type="submit" className="btn btn-primary" disabled={saving || confirmDelete}>
+                {saving ? 'Saving…' : isEditing ? 'Save Changes' : 'Confirm Reservation'}
+              </button>
+            </div>
           </div>
         </form>
       </div>
