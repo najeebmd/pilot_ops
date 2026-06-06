@@ -141,7 +141,9 @@
 }
 .avail-cell--free:hover { background: #bbf7d0; }
 
-.avail-cell--booked { background: #dbeafe; cursor: not-allowed; }
+.avail-cell--booked           { background: #dbeafe; cursor: not-allowed; }
+.avail-cell--booked.avail-cell--editable { cursor: pointer; }
+.avail-cell--booked.avail-cell--editable:hover { background: #bfdbfe; outline: 2px solid #3b82f6; outline-offset: -2px; }
 .avail-cell--busy   { background: #fee2e2; cursor: not-allowed; }
 .avail-cell--past   { background: #f8fafc; cursor: default; }
 

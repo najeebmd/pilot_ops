@@ -91,21 +91,33 @@ export default function ReservationsPage() {
   useEffect(() => { loadDay(); }, [loadDay]);
   useEffect(() => { if (tab === 'mine') loadMine(); }, [tab, loadMine]);
 
-  // ── Cell status ───────────────────────────────────────────────────────────
-  function cellStatus(instructorId: number, hour: number): 'free'|'booked'|'busy' {
-    const slotStart = new Date(activeDay); slotStart.setHours(hour, 0, 0, 0);
-    const slotEnd   = new Date(activeDay); slotEnd.setHours(hour+1, 0, 0, 0);
+  // ── Cell helpers ──────────────────────────────────────────────────────────
+  function slotRange(hour: number) {
+    const s = new Date(activeDay); s.setHours(hour,   0, 0, 0);
+    const e = new Date(activeDay); e.setHours(hour+1, 0, 0, 0);
+    return { slotStart: s, slotEnd: e };
+  }
 
+  function cellStatus(instructorId: number, hour: number): 'free'|'booked'|'busy' {
+    const { slotStart, slotEnd } = slotRange(hour);
     const blocks = scheduleMap[instructorId] ?? [];
     if (blocks.some(e => e.activity_type !== 'INSTRUCTION' &&
         overlaps(new Date(e.date_start), new Date(e.date_end), slotStart, slotEnd)))
       return 'busy';
-
     if (reservations.some(r => r.instructor_id === instructorId && r.status !== 'CANCELED' &&
         overlaps(new Date(r.date_start), new Date(r.date_end), slotStart, slotEnd)))
       return 'booked';
-
     return 'free';
+  }
+
+  /** Returns the reservation that occupies this instructor × hour slot, if any. */
+  function findReservation(instructorId: number, hour: number): Reservation | null {
+    const { slotStart, slotEnd } = slotRange(hour);
+    return reservations.find(r =>
+      r.instructor_id === instructorId &&
+      r.status !== 'CANCELED' &&
+      overlaps(new Date(r.date_start), new Date(r.date_end), slotStart, slotEnd)
+    ) ?? null;
   }
 
   function openBooking(hour: number, instructorId: number | null) {
@@ -223,23 +235,40 @@ export default function ReservationsPage() {
 
                       {/* Hour cells */}
                       {HOURS.map(hour => {
-                        const status  = cellStatus(instructor.id, hour);
-                        const isPast  = new Date(activeDay).setHours(hour+1) < Date.now();
-                        const cls     = `avail-cell avail-cell--${isPast ? 'past' : status}`;
-                        const canBook = !isPast && status === 'free';
+                        const status    = cellStatus(instructor.id, hour);
+                        const isPast    = new Date(activeDay).setHours(hour+1) < Date.now();
+                        const canBook   = !isPast && status === 'free';
+                        const canEdit   = !isPast && status === 'booked' && isAdminOrStaff;
+                        const isClickable = canBook || canEdit;
+                        const cls = [
+                          `avail-cell avail-cell--${isPast ? 'past' : status}`,
+                          canEdit ? 'avail-cell--editable' : '',
+                        ].join(' ').trim();
+
+                        function handleCellClick() {
+                          if (canBook) { openBooking(hour, instructor.id); return; }
+                          if (canEdit) {
+                            const res = findReservation(instructor.id, hour);
+                            if (res) setEditTarget(res);
+                          }
+                        }
+
                         return (
                           <td
                             key={hour}
                             className={cls}
-                            onClick={() => canBook && openBooking(hour, instructor.id)}
-                            title={canBook
-                              ? `Book ${instructor.first_name} at ${fmtHour(hour)}`
-                              : status === 'booked' ? 'Already reserved'
-                              : status === 'busy'   ? 'Unavailable'
-                              : undefined}
+                            onClick={isClickable ? handleCellClick : undefined}
+                            style={isClickable ? { cursor: 'pointer' } : undefined}
+                            title={canBook ? `Book ${instructor.first_name} at ${fmtHour(hour)}`
+                              : canEdit   ? `Edit reservation at ${fmtHour(hour)}`
+                              : status === 'busy' ? 'Unavailable' : undefined}
                           >
-                            {status === 'booked' && !isPast && <span className="avail-cell-dot avail-cell-dot--booked" />}
-                            {status === 'busy'   && !isPast && <span className="avail-cell-dot avail-cell-dot--busy" />}
+                            {status === 'booked' && !isPast && (
+                              <span className="avail-cell-dot avail-cell-dot--booked" />
+                            )}
+                            {status === 'busy' && !isPast && (
+                              <span className="avail-cell-dot avail-cell-dot--busy" />
+                            )}
                           </td>
                         );
                       })}
