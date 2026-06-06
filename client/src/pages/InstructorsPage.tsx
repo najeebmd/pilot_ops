@@ -42,12 +42,12 @@ export default function InstructorsPage() {
 
   const [instructors, setInstructors] = useState<User[]>([]);
   const [rates,       setRates]       = useState<RateMap>({});
-  const [total,       setTotal]       = useState(0);
   const [loading,     setLoading]     = useState(true);
   const [search,      setSearch]      = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [debounce,    setDebounce]    = useState<ReturnType<typeof setTimeout>|null>(null);
-  const [editing,     setEditing]     = useState<User | null>(null);
+  const [editing,      setEditing]      = useState<User | null>(null);
+  const [showInactive, setShowInactive] = useState(true);
 
   useEffect(() => { load(); }, [search]);
 
@@ -59,7 +59,6 @@ export default function InstructorsPage() {
         fetchRates(),
       ]);
       setInstructors(usersResult.data);
-      setTotal(usersResult.total);
       setRates(rateMap);
     } finally {
       setLoading(false);
@@ -79,13 +78,26 @@ export default function InstructorsPage() {
     await load();
   }
 
+  const visible = instructors.filter(instr => {
+    if (rates[instr.id]?.status === 'INACTIVE') return canEdit && showInactive;
+    return true;
+  });
+
   return (
     <div className="page">
       <div className="page-header">
         <div>
           <h1>Instructors</h1>
-          <p className="page-subtitle">{total} instructor{total !== 1 ? 's' : ''}</p>
+          <p className="page-subtitle">{visible.length} instructor{visible.length !== 1 ? 's' : ''}</p>
         </div>
+        {canEdit && (
+          <button
+            className={`btn btn-secondary instr-toggle-inactive${showInactive ? ' instr-toggle-inactive--on' : ''}`}
+            onClick={() => setShowInactive(v => !v)}
+          >
+            {showInactive ? 'Hide inactive' : 'Show inactive'}
+          </button>
+        )}
       </div>
 
       <div className="users-search-bar">
@@ -102,11 +114,11 @@ export default function InstructorsPage() {
 
       {loading ? (
         <p style={{padding:'3rem',textAlign:'center',color:'#9ca3af'}}>Loading…</p>
-      ) : instructors.length === 0 ? (
+      ) : visible.length === 0 ? (
         <p style={{padding:'3rem',textAlign:'center',color:'#9ca3af'}}>No instructors found.</p>
       ) : (
         <div className="instr-grid">
-          {instructors.map(instr => {
+          {visible.map(instr => {
             const info     = rates[instr.id];
             const inactive = info?.status === 'INACTIVE';
             return (

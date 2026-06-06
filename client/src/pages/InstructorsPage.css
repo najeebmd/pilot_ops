@@ -1,3 +1,15 @@
+.instr-toggle-inactive {
+  font-size: 0.8rem;
+  align-self: center;
+  white-space: nowrap;
+}
+
+.instr-toggle-inactive--on {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
 /* Card grid */
 .instr-grid {
   display: grid;
