@@ -5,19 +5,23 @@ import AuthModal from '../AuthModal';
 import './Navbar.css';
 
 const NAV_ITEMS = [
-  { to: '/',            label: 'Home' },
-  { to: '/students',    label: 'Users' },
-  { to: '/instructors', label: 'Instructors' },
-  { to: '/courses',     label: 'Courses' },
-  { to: '/aircraft',              label: 'Aircraft' },
-  { to: '/schedule',     label: 'Schedule' },
-  { to: '/reservations', label: 'Reservations' },
+  { to: '/',            label: 'Home',         adminOnly: false },
+  { to: '/students',    label: 'Users',         adminOnly: true  },
+  { to: '/instructors', label: 'Instructors',   adminOnly: false },
+  { to: '/courses',     label: 'Courses',       adminOnly: false },
+  { to: '/aircraft',    label: 'Aircraft',      adminOnly: false },
+  { to: '/schedule',    label: 'Schedule',      adminOnly: false },
+  { to: '/reservations',label: 'Reservations',  adminOnly: false },
 ];
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
-  const [showAuth, setShowAuth]       = useState(false);
+  const [showAuth, setShowAuth]         = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+
+  const isAdminOrStaff = user?.roles.some(r => r === 'ADMIN' || r === 'STAFF') ?? false;
+
+  const visibleItems = NAV_ITEMS.filter(item => !item.adminOnly || isAdminOrStaff);
 
   return (
     <>
@@ -31,7 +35,7 @@ export default function Navbar() {
         </NavLink>
 
         <nav className="navbar-nav">
-          {NAV_ITEMS.map(({ to, label }) => (
+          {visibleItems.map(({ to, label }) => (
             <NavLink
               key={to}
               to={to}

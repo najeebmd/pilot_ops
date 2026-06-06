@@ -4,6 +4,7 @@ import HomePage from './pages/HomePage';
 import UsersPage    from './pages/UsersPage';
 import SchedulePage  from './pages/SchedulePage';
 import AircraftPage             from './pages/AircraftPage';
+import AdminRoute               from './components/AdminRoute';
 import AircraftAvailabilityPage from './pages/AircraftAvailabilityPage';
 import ReservationsPage  from './pages/ReservationsPage';
 
@@ -22,7 +23,7 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/"            element={<HomePage />} />
-          <Route path="/students"    element={<UsersPage />} />
+          <Route path="/students"    element={<AdminRoute><UsersPage /></AdminRoute>} />
           <Route path="/instructors" element={<Placeholder title="Instructors" />} />
           <Route path="/courses"     element={<Placeholder title="Courses" />} />
           <Route path="/aircraft"              element={<AircraftPage />} />
