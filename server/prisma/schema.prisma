@@ -25,6 +25,13 @@ enum ActivityType {
   NOT_AVAILABLE
 }
 
+enum AircraftActivityType {
+  MAINTENANCE
+  NOT_AVAILABLE
+  RESERVED
+  OTHER
+}
+
 enum RoleName {
   STUDENT
   GUEST
@@ -105,6 +112,7 @@ model Reservation {
   aircraft           Aircraft?           @relation(                          fields: [aircraft_id],   references: [id], onDelete: SetNull)
   instructor         User?               @relation("InstructorReservations", fields: [instructor_id], references: [id], onDelete: SetNull)
   instructor_schedule InstructorSchedule?
+  aircraft_schedule   AircraftSchedule?
 }
 
 model Aircraft {
@@ -124,6 +132,23 @@ model Aircraft {
   date_updated         DateTime       @updatedAt
 
   reservations         Reservation[]
+  aircraft_schedule    AircraftSchedule[]
+}
+
+model AircraftSchedule {
+  id             Int                  @id @default(autoincrement())
+  aircraft_id    Int
+  date_start     DateTime
+  date_end       DateTime
+  activity_type  AircraftActivityType
+  // When set, this entry was auto-created from a reservation.
+  // Deleting the reservation cascades and removes this entry automatically.
+  reservation_id Int?                 @unique
+  date_created   DateTime             @default(now())
+  date_updated   DateTime             @updatedAt
+
+  aircraft       Aircraft             @relation(fields: [aircraft_id],   references: [id], onDelete: Cascade)
+  reservation    Reservation?         @relation(fields: [reservation_id], references: [id], onDelete: Cascade)
 }
 
 model InstructorSchedule {

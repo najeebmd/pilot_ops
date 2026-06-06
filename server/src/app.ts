@@ -21,6 +21,7 @@ import userRolesRouter            from './routes/userRoles';
 import instructorScheduleRouter   from './routes/instructorSchedule';
 import aircraftRouter             from './routes/aircraft';
 import reservationsRouter         from './routes/reservations';
+import aircraftScheduleRouter     from './routes/aircraftSchedule';
 
 app.use('/api/auth',                      authRouter);
 app.use('/api/users',                     usersRouter);
@@ -30,5 +31,6 @@ app.use('/api/users/:userId/roles',       userRolesRouter);
 app.use('/api/instructor-schedule',       instructorScheduleRouter);
 app.use('/api/aircraft',                  aircraftRouter);
 app.use('/api/reservations',              reservationsRouter);
+app.use('/api/aircraft-schedule',         aircraftScheduleRouter);
 
 export default app;
