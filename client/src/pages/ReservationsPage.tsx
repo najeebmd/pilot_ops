@@ -71,7 +71,7 @@ export default function ReservationsPage() {
   useEffect(() => {
     fetchUsers({ role: 'INSTRUCTOR', pageSize: 100 } as any).then(r =>
       setInstructors((r.data as any[]).sort((a, b) =>
-        `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`)
+        `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`)
       ))
     );
     fetchAircraft({ pageSize: 100, status: 'READY' }).then(r => setAllAircraft(r.data));
