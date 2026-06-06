@@ -91,7 +91,7 @@ export default function ReservationsPage() {
         `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`)
       ))
     );
-    fetchAircraft({ pageSize: 100, status: 'READY' }).then(r => setAllAircraft(r.data));
+    fetchAircraft({ pageSize: 100 }).then(r => setAllAircraft(r.data));
   }, []);
 
   const loadDay = useCallback(async () => {
