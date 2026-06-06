@@ -10,7 +10,6 @@ const NAV_ITEMS = [
   { to: '/instructors', label: 'Instructors' },
   { to: '/courses',     label: 'Courses' },
   { to: '/aircraft',              label: 'Aircraft' },
-  { to: '/aircraft/availability', label: 'Fleet Availability' },
   { to: '/schedule',     label: 'Schedule' },
   { to: '/reservations', label: 'Reservations' },
 ];
