@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { User, UserFormData } from '../types/user';
 import { fetchUsers, createUser, updateUser, deleteUser } from '../api/users';
 import UserFormModal from '../components/UserFormModal';
@@ -46,17 +46,30 @@ export default function UsersPage() {
   const [pageSize, setPageSize]   = useState(10);
   const [sortBy, setSortBy]       = useState<SortKey>('date_created');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch]           = useState('');  // debounced value sent to API
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [viewUser, setViewUser]         = useState<User | null>(null);
   const [editUser, setEditUser]         = useState<User | null | undefined>(undefined);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
 
-  useEffect(() => { load(); }, [page, pageSize, sortBy, sortOrder]);
+  // Debounce: update `search` 350ms after the user stops typing
+  function handleSearchInput(value: string) {
+    setSearchInput(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearch(value.trim());
+      setPage(1);
+    }, 350);
+  }
+
+  useEffect(() => { load(); }, [page, pageSize, sortBy, sortOrder, search]);
 
   async function load() {
     setLoading(true);
     try {
-      const result = await fetchUsers({ page, pageSize, sortBy, sortOrder });
+      const result = await fetchUsers({ page, pageSize, sortBy, sortOrder, search: search || undefined });
       setUsers(result.data);
       setTotal(result.total);
     } finally {
@@ -107,6 +120,26 @@ export default function UsersPage() {
           <p className="page-subtitle">{total} total</p>
         </div>
         <button className="btn btn-primary" onClick={() => setEditUser(null)}>+ Add User</button>
+      </div>
+
+      {/* Search bar */}
+      <div className="users-search-bar">
+        <input
+          className="search-input"
+          type="text"
+          placeholder="Search by first name, last name, or both…"
+          value={searchInput}
+          onChange={e => handleSearchInput(e.target.value)}
+        />
+        {searchInput && (
+          <button
+            className="search-clear-btn"
+            onClick={() => { setSearchInput(''); setSearch(''); setPage(1); }}
+            title="Clear search"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       <div className="table-wrapper">

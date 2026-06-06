@@ -4,6 +4,32 @@
   padding: 2rem 1.5rem;
 }
 
+/* Search bar */
+.users-search-bar {
+  position: relative;
+  margin-bottom: 1rem;
+  max-width: 420px;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+  border-radius: 4px;
+  line-height: 1;
+}
+
+.search-clear-btn:hover { color: #374151; }
+
+.search-input { width: 100%; }
+
 .page-header {
   display: flex;
   justify-content: space-between;
