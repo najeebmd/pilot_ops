@@ -14,6 +14,7 @@ app.get('/health', (_req, res) => {
 });
 
 import authRouter      from './routes/auth';
+import profileRouter   from './routes/profile';
 import usersRouter     from './routes/users';
 import rolesRouter     from './routes/roles';
 import userLoginsRouter from './routes/userLogins';
@@ -24,6 +25,7 @@ import reservationsRouter         from './routes/reservations';
 import aircraftScheduleRouter     from './routes/aircraftSchedule';
 
 app.use('/api/auth',                      authRouter);
+app.use('/api/profile',                   profileRouter);
 app.use('/api/users',                     usersRouter);
 app.use('/api/roles',                     rolesRouter);
 app.use('/api/users/:userId/login',       userLoginsRouter);

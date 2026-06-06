@@ -46,7 +46,13 @@
       "Bash(curl -s \"http://localhost:3001/api/users?role=STUDENT&search=chen&pageSize=5\")",
       "Bash(curl -s \"http://localhost:3001/api/users?role=STUDENT&search=example.com&pageSize=5\")",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(f'  {d[\\\\\"total\\\\\"]} results'\\)\")",
-      "Bash(curl -s \"http://localhost:3001/api/aircraft-schedule?aircraft_id=2\")"
+      "Bash(curl -s \"http://localhost:3001/api/aircraft-schedule?aircraft_id=2\")",
+      "Bash(git commit *)",
+      "Bash(curl -s -X POST http://localhost:3001/api/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"james_mitchell\",\"password\":\"welcome123\"}')",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('✅', d['user']['first_name'], d['user']['last_name']\\)\")",
+      "Bash(curl -s \"http://localhost:3001/api/users?role=INSTRUCTOR&pageSize=1\")",
+      "Bash(curl -s \"http://localhost:3001/api/users?role=INSTRUCTOR&pageSize=2\")",
+      "Bash(curl -s -X POST http://localhost:3001/api/auth/login -H 'Content-Type: application/json' -d '{\"username\":\"test.admin\",\"password\":\"welcome123\"}')"
     ]
   }
 }

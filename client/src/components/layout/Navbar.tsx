@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import AuthModal from '../AuthModal';
 import './Navbar.css';
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [showAuth, setShowAuth]         = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -74,6 +75,10 @@ export default function Navbar() {
                         ))}
                       </div>
                     </div>
+                    <div className="user-menu-divider" />
+                    <button className="user-menu-item" onClick={() => { navigate('/profile'); setShowUserMenu(false); }}>
+                      👤 Profile
+                    </button>
                     <div className="user-menu-divider" />
                     <button className="user-menu-item user-menu-item--danger" onClick={() => { signOut(); setShowUserMenu(false); }}>
                       Sign Out

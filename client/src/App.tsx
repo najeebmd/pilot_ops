@@ -6,6 +6,7 @@ import SchedulePage  from './pages/SchedulePage';
 import AircraftPage             from './pages/AircraftPage';
 import AdminRoute               from './components/AdminRoute';
 import AircraftAvailabilityPage from './pages/AircraftAvailabilityPage';
+import ProfilePage               from './pages/ProfilePage';
 import ReservationsPage  from './pages/ReservationsPage';
 
 function Placeholder({ title }: { title: string }) {
@@ -30,6 +31,7 @@ export default function App() {
           <Route path="/aircraft/availability" element={<AircraftAvailabilityPage />} />
           <Route path="/schedule"    element={<SchedulePage />} />
           <Route path="/reservations" element={<ReservationsPage />} />
+          <Route path="/profile"      element={<ProfilePage />} />
         </Route>
       </Routes>
     </BrowserRouter>
