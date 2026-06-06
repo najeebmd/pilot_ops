@@ -80,9 +80,13 @@ export default function ReservationsPage() {
 
   const loadMine = useCallback(async () => {
     if (!user) return;
-    const r = await fetchReservations({ user_id: user.id, pageSize: 100, sortBy: 'date_start', sortOrder: 'desc' });
+    // Admin/staff see all reservations; students only see their own
+    const params = isAdminOrStaff
+      ? { pageSize: 200, sortBy: 'date_start', sortOrder: 'desc' as const }
+      : { user_id: user.id, pageSize: 100, sortBy: 'date_start', sortOrder: 'desc' as const };
+    const r = await fetchReservations(params);
     setMyReservations(r.data);
-  }, [user]);
+  }, [user, isAdminOrStaff]);
 
   useEffect(() => { loadDay(); }, [loadDay]);
   useEffect(() => { if (tab === 'mine') loadMine(); }, [tab, loadMine]);
@@ -159,7 +163,7 @@ export default function ReservationsPage() {
           📅 Instructor Availability
         </button>
         <button className={`res-tab${tab==='mine'?' res-tab--active':''}`} onClick={() => setTab('mine')}>
-          🎓 My Reservations
+          {isAdminOrStaff ? '📋 All Reservations' : '🎓 My Reservations'}
         </button>
       </div>
 
@@ -296,11 +300,16 @@ export default function ReservationsPage() {
                       </span>
                     </div>
                     <div className="res-card-details">
+                      {isAdminOrStaff && (
+                        <span className="res-card-student">
+                          🎓 {r.user.first_name} {r.user.last_name}
+                        </span>
+                      )}
                       {r.instructor && <span>👨‍✈️ {r.instructor.first_name} {r.instructor.last_name}</span>}
                       {r.aircraft   && <span>✈️ {r.aircraft.tail_number} — {r.aircraft.make} {r.aircraft.model}</span>}
                       {!r.instructor && !r.aircraft && <span className="res-card-solo">Solo / no aircraft</span>}
                     </div>
-                    {r.status === 'RESERVED' && (
+                    {r.status === 'RESERVED' && (isAdminOrStaff || r.user_id === user.id) && (
                       <div className="res-card-actions">
                         <button className="btn btn-secondary" style={{fontSize:'0.78rem',padding:'0.3rem 0.75rem'}}
                           onClick={() => setEditTarget(r)}>
