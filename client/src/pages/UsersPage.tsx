@@ -83,11 +83,23 @@ export default function UsersPage() {
     setPage(1);
   }
 
-  async function handleSave(data: UserFormData) {
+  async function handleSave(data: UserFormData & { _username?: string; _password?: string }) {
     if (editUser) {
       await updateUser(editUser.id, data);
     } else {
-      await createUser(data);
+      const created = await createUser(data);
+      // Create login credentials if username/password were provided
+      if (data._username && data._password) {
+        const token = localStorage.getItem('po_token');
+        await fetch(`/api/users/${created.id}/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ username: data._username, password: data._password }),
+        });
+      }
     }
     setEditUser(undefined);
     setPage(1);

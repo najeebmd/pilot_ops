@@ -18,8 +18,11 @@ interface Props {
 }
 
 export default function UserFormModal({ user, onSave, onClose }: Props) {
+  const isEdit = !!user;
   const [form, setForm]       = useState<UserFormData>(EMPTY);
   const [roles, setRoles]     = useState<Role[]>([]);
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [saving, setSaving]   = useState(false);
   const [error, setError]     = useState('');
 
@@ -50,7 +53,10 @@ export default function UserFormModal({ user, onSave, onClose }: Props) {
       });
     } else {
       setForm(EMPTY);
+      setUsername('');
+      setPassword('');
     }
+    setError('');
   }, [user]);
 
   function set(field: keyof UserFormData, value: string) {
@@ -69,9 +75,13 @@ export default function UserFormModal({ user, onSave, onClose }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
+    if (!isEdit) {
+      if (!username.trim()) { setError('Username is required'); return; }
+      if (password.length < 8) { setError('Password must be at least 8 characters'); return; }
+    }
     setSaving(true);
     try {
-      await onSave(form);
+      await onSave({ ...form, _username: username, _password: password } as any);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
@@ -154,6 +164,37 @@ export default function UserFormModal({ user, onSave, onClose }: Props) {
               </div>
             </div>
           </div>
+
+          {/* Login credentials — create mode only */}
+          {!isEdit && (
+            <>
+              <div className="field field-full" style={{marginTop:'0.25rem'}}>
+                <label style={{fontSize:'0.72rem',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.07em',color:'#94a3b8',marginBottom:'0.5rem',display:'block'}}>
+                  Login Credentials
+                </label>
+              </div>
+              <div className="form-grid">
+                <div className="field">
+                  <label>Username *</label>
+                  <input
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    placeholder="e.g. james.smith"
+                    autoComplete="off"
+                  />
+                </div>
+                <div className="field">
+                  <label>Password * <span style={{fontWeight:400,color:'#94a3b8',fontSize:'0.75rem'}}>(min 8 chars)</span></label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           {error && <p className="form-error">{error}</p>}
 
