@@ -13,6 +13,7 @@ interface Props {
   canSelectStudent?:    boolean;
   defaultStart?:        string;
   defaultInstructorId?: number | null;
+  defaultAircraftId?:   number | null;
   existingReservation?: Reservation | null;   // when set → edit mode
   onDelete?: () => Promise<void>;             // admin/staff only
   onSave:  (data: ReservationFormData) => Promise<void>;
@@ -27,7 +28,7 @@ function toLocalInput(iso: string) {
 
 export default function ReservationFormModal({
   userId, instructors, aircraft, canSelectStudent = false,
-  defaultStart, defaultInstructorId, existingReservation, onDelete, onSave, onClose,
+  defaultStart, defaultInstructorId, defaultAircraftId, existingReservation, onDelete, onSave, onClose,
 }: Props) {
   const isEditing = !!existingReservation;
 
@@ -55,7 +56,7 @@ export default function ReservationFormModal({
     } else {
       // Create mode
       setInstructorId(defaultInstructorId ?? '');
-      setAircraftId('');
+      setAircraftId(defaultAircraftId ?? '');
       if (defaultStart) {
         const start = toLocalInput(defaultStart);
         setDateStart(start);
@@ -67,7 +68,7 @@ export default function ReservationFormModal({
         setDateEnd('');
       }
     }
-  }, [existingReservation, defaultStart, defaultInstructorId, userId]);
+  }, [existingReservation, defaultStart, defaultInstructorId, defaultAircraftId, userId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

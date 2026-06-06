@@ -42,10 +42,116 @@ User
 -> date_created
 -> date_updated
 
+Role
+-> id
+-> name (student, guest, instructor, staff, admin, other)
+-> date_created
+-> date_updated
+
+User_login
+-> id
+-> user_id
+-> username
+-> password (encrypted)
+-> date_created
+-> date_updated
+
+user_roles
+-> id
+-> user_id
+-> role_id
+-> date_created
+-> date_updated
+
+aircraft
+id
+tail_number (this is the unique alphanumeric registration code on the plane)
+serial_number (the factory alphanumeric serial Id number for the airframe)
+make
+model
+year_built
+flight_hours
+fuel_capacity
+weight
+status (ready, maintenance, not_available)
+current_airport_id
+rental_rate (per hour)
+next_inspection_date
+
+
+reservation
+id
+user_id
+aircraft_id (nullable)
+instructor_id (nullable)
+date_start (date & time)
+date_end (date & time)
+status (reserved, completed, canceled)
+date_created
+date_updated
+
+instructor_schedule
+id
+instructor_id (foreign key with user_id with role of instructor)
+date_start (date & time)
+date_end (date & time)
+activity_type (instruction, other, not_available)
+date_created
+date_updated
 
 
 
+========================================================================================
 
+User
+	Message Center
+	Profile
+	Flight History
+	Log Records
+	Transactions
+	Reservations
+		View past reservations
+		Add new reservation
+		Update/DElete a reservation
+Aircrafts
+	List
+	Rates
+Instructors
+	List
+	Rates
+Resources
+	Articles
+	Content
+	Blogs
+Weather
+	Current Weather
+	Forecast
+	Images
+Shop
+	Products
+	Cart
+	Order History
+Tools
+	Airport Lookup
+	Calculators
+Site
+	Careers
+	About Us
+	Contact
+
+========================================================================================
+Use Cases
+-> Instructor may cancel a reservation
+-> Student may cancel a reservation
+-> An aircraft with future reservations goes into maintenance - cancel reservations
+
+ToDo
+-> Reserving a flight should automatically add to instructor's schedule
+-> After completing the flight, update the reservation to complete
+
+
+Feature Enhancements
+-> Images for aircrafts
 
 ========================================================================================
 
@@ -72,6 +178,10 @@ To re-seed in the future (e.g. after wiping the DB):
 cd server && npm run db:seed. 
 The seed uses upsert on email so it's safe to run multiple times without duplicates.
 ========================================================================================
+
+http://localhost:3001/api/users
+http://localhost:5173
+james_mitchell / Password1!
 ========================================================================================
 ========================================================================================
 ========================================================================================

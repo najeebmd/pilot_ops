@@ -4,6 +4,8 @@ import { fetchReservations, createReservation, updateReservation, deleteReservat
 import { fetchAircraft } from '../api/aircraft';
 import { fetchSchedule } from '../api/schedule';
 import { fetchUsers } from '../api/users';
+import { fetchAircraftSchedule } from '../api/aircraftSchedule';
+import type { AircraftScheduleEntry } from '../api/aircraftSchedule';
 import type { Reservation } from '../types/reservation';
 import type { Aircraft } from '../types/aircraft';
 import type { ScheduleEntry } from '../types/schedule';
@@ -35,11 +37,12 @@ const STATUS_META: Record<string, {label: string; bg: string; color: string}> = 
 export default function ReservationsPage() {
   const { user } = useAuth();
 
-  const [tab,       setTab]       = useState<'book'|'mine'>('book');
+  const [tab,       setTab]       = useState<'book'|'fleet'|'mine'>('book');
   const [activeDay, setActiveDay] = useState(() => sod(new Date()));
 
-  const [instructors,    setInstructors]    = useState<Instructor[]>([]);
-  const [allAircraft,    setAllAircraft]    = useState<Aircraft[]>([]);
+  const [instructors,       setInstructors]       = useState<Instructor[]>([]);
+  const [allAircraft,       setAllAircraft]       = useState<Aircraft[]>([]);
+  const [aircraftSchedules, setAircraftSchedules] = useState<AircraftScheduleEntry[]>([]);
 
   const isAdminOrStaff = user?.roles.some(r => r === 'ADMIN' || r === 'STAFF') ?? false;
   const [scheduleMap,    setScheduleMap]    = useState<Record<number, ScheduleEntry[]>>({});
@@ -47,7 +50,7 @@ export default function ReservationsPage() {
   const [myReservations, setMyReservations] = useState<Reservation[]>([]);
   const [loading,        setLoading]        = useState(true);
 
-  const [bookingSlot,  setBookingSlot]  = useState<{start: string; instructorId: number|null}|null>(null);
+  const [bookingSlot,  setBookingSlot]  = useState<{start: string; instructorId: number|null; aircraftId?: number|null}|null>(null);
   const [editTarget,   setEditTarget]   = useState<Reservation|null>(null);
   const [cancelTarget, setCancelTarget] = useState<Reservation|null>(null);
 
@@ -62,9 +65,10 @@ export default function ReservationsPage() {
     const dateFrom = activeDay.toISOString();
     const dateTo   = addDays(activeDay, 1).toISOString();
     try {
-      const [schedResult, resResult] = await Promise.all([
+      const [schedResult, resResult, acSchedResult] = await Promise.all([
         fetchSchedule({ pageSize: 200, sortBy: 'date_start', sortOrder: 'asc' }),
         fetchReservations({ date_from: dateFrom, date_to: dateTo, pageSize: 200 }),
+        fetchAircraftSchedule({ date_from: dateFrom, date_to: dateTo, pageSize: 500 }),
       ]);
       const map: Record<number, ScheduleEntry[]> = {};
       schedResult.data.forEach(e => {
@@ -73,6 +77,7 @@ export default function ReservationsPage() {
       });
       setScheduleMap(map);
       setReservations(resResult.data);
+      setAircraftSchedules(acSchedResult.data);
     } finally {
       setLoading(false);
     }
@@ -120,9 +125,34 @@ export default function ReservationsPage() {
     ) ?? null;
   }
 
-  function openBooking(hour: number, instructorId: number | null) {
+  function openBooking(hour: number, instructorId: number | null, aircraftId?: number | null) {
     const start = new Date(activeDay); start.setHours(hour, 0, 0, 0);
-    setBookingSlot({ start: start.toISOString(), instructorId });
+    setBookingSlot({ start: start.toISOString(), instructorId, aircraftId });
+  }
+
+  // ── Fleet cell helpers ────────────────────────────────────────────────────
+  function fleetCellState(ac: Aircraft, hour: number): 'available'|'reserved'|'unavailable'|'past' {
+    const slotStart = new Date(activeDay); slotStart.setHours(hour,   0, 0, 0);
+    const slotEnd   = new Date(activeDay); slotEnd.setHours(  hour+1, 0, 0, 0);
+    if (slotEnd.getTime() < Date.now()) return 'past';
+    if (ac.status !== 'READY') return 'unavailable';
+    const entry = aircraftSchedules.find(e =>
+      e.aircraft_id === ac.id &&
+      overlaps(new Date(e.date_start), new Date(e.date_end), slotStart, slotEnd)
+    );
+    if (!entry) return 'available';
+    if (entry.activity_type === 'RESERVED') return 'reserved';
+    return 'unavailable'; // MAINTENANCE, NOT_AVAILABLE, OTHER
+  }
+
+  function findAircraftReservation(ac: Aircraft, hour: number): Reservation | null {
+    const slotStart = new Date(activeDay); slotStart.setHours(hour,   0, 0, 0);
+    const slotEnd   = new Date(activeDay); slotEnd.setHours(  hour+1, 0, 0, 0);
+    return reservations.find(r =>
+      r.aircraft_id === ac.id &&
+      r.status !== 'CANCELED' &&
+      overlaps(new Date(r.date_start), new Date(r.date_end), slotStart, slotEnd)
+    ) ?? null;
   }
 
   async function handleBook(data: import('../types/reservation').ReservationFormData) {
@@ -181,6 +211,9 @@ export default function ReservationsPage() {
       <div className="res-tabs">
         <button className={`res-tab${tab==='book'?' res-tab--active':''}`} onClick={() => setTab('book')}>
           📅 Instructor Availability
+        </button>
+        <button className={`res-tab${tab==='fleet'?' res-tab--active':''}`} onClick={() => setTab('fleet')}>
+          ✈️ Fleet Availability
         </button>
         <button className={`res-tab${tab==='mine'?' res-tab--active':''}`} onClick={() => setTab('mine')}>
           {isAdminOrStaff ? '📋 All Reservations' : '🎓 My Reservations'}
@@ -310,6 +343,119 @@ export default function ReservationsPage() {
         </>
       )}
 
+      {/* ── FLEET AVAILABILITY ── */}
+      {tab === 'fleet' && (
+        <>
+          <div className="day-nav">
+            <button className="btn btn-secondary btn-page" onClick={() => setActiveDay(d => addDays(d,-1))}>‹</button>
+            <span className={`day-nav-label${isToday?' day-nav-label--today':''}`}>{fmtFullDate(activeDay)}</span>
+            <button className="btn btn-secondary btn-page" onClick={() => setActiveDay(d => addDays(d, 1))}>›</button>
+            {!isToday && <button className="btn btn-secondary btn-today" onClick={() => setActiveDay(sod(new Date()))}>Today</button>}
+          </div>
+
+          <div className="cal-legend">
+            <span className="cal-legend-item cal-legend-item--free">Available — click to book</span>
+            <span className="cal-legend-item cal-legend-item--booked">Reserved</span>
+            <span className="cal-legend-item cal-legend-item--busy">Unavailable / Maintenance</span>
+            <span className="cal-legend-item cal-legend-item--past">Past</span>
+          </div>
+
+          {loading ? (
+            <p className="res-state">Loading…</p>
+          ) : allAircraft.length === 0 ? (
+            <p className="res-state">No aircraft found.</p>
+          ) : (
+            <div className="big-table-wrapper" style={{marginBottom:'1.5rem'}}>
+              <table className="avail-table">
+                <thead>
+                  <tr>
+                    <th className="avail-th-instructor">Aircraft</th>
+                    {HOURS.map(h => (
+                      <th key={h} className="avail-th-hour">{fmtHour(h)}</th>
+                    ))}
+                    <th className="avail-th-action"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allAircraft.map(ac => (
+                    <tr key={ac.id} className="avail-row">
+                      <td className="avail-td-instructor">
+                        <div className="avail-instructor-info">
+                          <span className="avail-instructor-name">{ac.tail_number}</span>
+                          <span style={{fontSize:'0.72rem',color:'#64748b'}}>{ac.make} {ac.model}</span>
+                        </div>
+                      </td>
+
+                      {HOURS.map(hour => {
+                        const state = fleetCellState(ac, hour);
+                        const isPast    = state === 'past';
+                        const canBook   = state === 'available';
+                        const canEdit   = state === 'reserved' && isAdminOrStaff;
+                        const isClickable = canBook || canEdit;
+                        const cls = [
+                          `avail-cell`,
+                          isPast         ? 'avail-cell--past'
+                            : state === 'available'   ? 'avail-cell--free'
+                            : state === 'reserved'    ? 'avail-cell--booked'
+                            : 'avail-cell--busy',
+                          canEdit ? 'avail-cell--editable' : '',
+                        ].join(' ').trim();
+
+                        function handleFleetCell() {
+                          if (canBook) { openBooking(hour, null, ac.id); return; }
+                          if (canEdit) {
+                            const res = findAircraftReservation(ac, hour);
+                            if (res) setEditTarget(res);
+                          }
+                        }
+
+                        return (
+                          <td
+                            key={hour}
+                            className={cls}
+                            onClick={isClickable ? handleFleetCell : undefined}
+                            style={isClickable ? { cursor: 'pointer' } : undefined}
+                            title={
+                              canBook ? `Book ${ac.tail_number} at ${fmtHour(hour)}`
+                              : canEdit ? `Edit reservation at ${fmtHour(hour)}`
+                              : state === 'reserved' ? 'Already reserved'
+                              : state === 'unavailable' ? 'Unavailable / Maintenance'
+                              : undefined
+                            }
+                          >
+                            {state === 'reserved'    && !isPast && <span className="avail-cell-dot avail-cell-dot--booked" />}
+                            {state === 'unavailable' && !isPast && <span className="avail-cell-dot avail-cell-dot--busy" />}
+                          </td>
+                        );
+                      })}
+
+                      <td className="avail-td-action">
+                        <button
+                          className="btn-book-quick"
+                          onClick={() => openBooking(new Date().getHours(), null, ac.id)}
+                        >
+                          Book
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div className="solo-booking">
+            <div>
+              <p className="solo-booking-title">🧑‍✈️ Add an instructor to your flight</p>
+              <p className="solo-booking-desc">Switch to Instructor Availability to book a slot with an instructor.</p>
+            </div>
+            <button className="btn btn-secondary" onClick={() => setTab('book')}>
+              View Instructor Availability
+            </button>
+          </div>
+        </>
+      )}
+
       {/* ── MY RESERVATIONS ── */}
       {tab === 'mine' && (
         <div className="my-reservations">
@@ -374,6 +520,7 @@ export default function ReservationsPage() {
           canSelectStudent={isAdminOrStaff}
           defaultStart={bookingSlot.start}
           defaultInstructorId={bookingSlot.instructorId}
+          defaultAircraftId={bookingSlot.aircraftId}
           onSave={handleBook}
           onClose={() => setBookingSlot(null)}
         />
