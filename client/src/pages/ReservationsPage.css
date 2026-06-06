@@ -27,6 +27,105 @@
 .day-nav-label--today { color: #6366f1; }
 .btn-today  { margin-left: 0.25rem; font-size: 0.8rem; padding: 0.3rem 0.8rem; }
 
+/* Instructor filter panel */
+.instructor-filter {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.instructor-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.6rem;
+  gap: 1rem;
+}
+
+.instructor-filter-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.instructor-filter-count {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: #94a3b8;
+}
+
+.instructor-filter-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.btn-filter-ctrl {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 5px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-filter-ctrl:hover:not(:disabled) { background: #6366f1; color: #fff; border-color: #6366f1; }
+.btn-filter-ctrl:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.instructor-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.instructor-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid;
+  transition: all 0.15s;
+  user-select: none;
+}
+
+.instructor-toggle--on {
+  background: #ede9fe;
+  border-color: #6366f1;
+  color: #4f46e5;
+}
+
+.instructor-toggle--off {
+  background: #f9fafb;
+  border-color: #e2e8f0;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
+.instructor-toggle--off:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+  text-decoration: none;
+  background: #f5f3ff;
+}
+
+.instructor-toggle-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
 /* Legend */
 .cal-legend { display: flex; gap: 1.25rem; flex-wrap: wrap; margin-bottom: 0.75rem; font-size: 0.75rem; color: #374151; }
 .cal-legend-item { display: flex; align-items: center; gap: 0.35rem; }

@@ -50,6 +50,19 @@ export default function ReservationsPage() {
   const [myReservations, setMyReservations] = useState<Reservation[]>([]);
   const [loading,        setLoading]        = useState(true);
 
+  // Instructor visibility: empty Set = all visible
+  const [hiddenInstructors, setHiddenInstructors] = useState<Set<number>>(new Set());
+
+  function toggleInstructor(id: number) {
+    setHiddenInstructors(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function showAllInstructors()  { setHiddenInstructors(new Set()); }
+  function hideAllInstructors()  { setHiddenInstructors(new Set(instructors.map(i => i.id))); }
+
   const [bookingSlot,  setBookingSlot]  = useState<{start: string; instructorId: number|null; aircraftId?: number|null}|null>(null);
   const [editTarget,   setEditTarget]   = useState<Reservation|null>(null);
   const [cancelTarget, setCancelTarget] = useState<Reservation|null>(null);
@@ -246,6 +259,52 @@ export default function ReservationsPage() {
             )}
           </div>
 
+          {/* Instructor filter */}
+          {instructors.length > 0 && (
+            <div className="instructor-filter">
+              <div className="instructor-filter-header">
+                <span className="instructor-filter-label">
+                  Instructors
+                  <span className="instructor-filter-count">
+                    {instructors.length - hiddenInstructors.size} of {instructors.length} shown
+                  </span>
+                </span>
+                <div className="instructor-filter-actions">
+                  <button
+                    className="btn-filter-ctrl"
+                    onClick={showAllInstructors}
+                    disabled={hiddenInstructors.size === 0}
+                  >
+                    Show All
+                  </button>
+                  <button
+                    className="btn-filter-ctrl"
+                    onClick={hideAllInstructors}
+                    disabled={hiddenInstructors.size === instructors.length}
+                  >
+                    Hide All
+                  </button>
+                </div>
+              </div>
+              <div className="instructor-toggles">
+                {instructors.map(i => {
+                  const visible = !hiddenInstructors.has(i.id);
+                  return (
+                    <button
+                      key={i.id}
+                      className={`instructor-toggle${visible ? ' instructor-toggle--on' : ' instructor-toggle--off'}`}
+                      onClick={() => toggleInstructor(i.id)}
+                      title={visible ? `Hide ${i.first_name}` : `Show ${i.first_name}`}
+                    >
+                      <span className="instructor-toggle-dot" />
+                      {i.first_name} {i.last_name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Legend */}
           <div className="cal-legend">
             <span className="cal-legend-item cal-legend-item--free">Available — click to book</span>
@@ -258,6 +317,8 @@ export default function ReservationsPage() {
             <p className="res-state">Loading availability…</p>
           ) : instructors.length === 0 ? (
             <p className="res-state">No instructors found.</p>
+          ) : hiddenInstructors.size === instructors.length ? (
+            <p className="res-state">All instructors hidden. Use the filter above to show instructors.</p>
           ) : (
             <div className="big-table-wrapper">
               <table className="avail-table">
@@ -273,7 +334,7 @@ export default function ReservationsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {instructors.map(instructor => (
+                  {instructors.filter(i => !hiddenInstructors.has(i.id)).map(instructor => (
                     <tr key={instructor.id} className="avail-row">
                       {/* Instructor name cell */}
                       <td className="avail-td-instructor">
