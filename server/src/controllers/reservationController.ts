@@ -203,6 +203,11 @@ export async function createReservation(req: Request, res: Response) {
     return;
   }
 
+  if (!aircraft_id && !instructor_id) {
+    res.status(400).json({ message: 'At least one of aircraft or instructor must be selected' });
+    return;
+  }
+
   const start = new Date(date_start);
   const end   = new Date(date_end);
   if (isNaN(start.getTime()) || isNaN(end.getTime())) {
@@ -285,6 +290,11 @@ export async function updateReservation(req: Request, res: Response) {
 
   const resolvedAircraftId   = aircraft_id   !== undefined ? (aircraft_id   ? Number(aircraft_id)   : null) : existing.aircraft_id;
   const resolvedInstructorId = instructor_id !== undefined ? (instructor_id ? Number(instructor_id) : null) : existing.instructor_id;
+
+  if (!resolvedAircraftId && !resolvedInstructorId) {
+    res.status(400).json({ message: 'At least one of aircraft or instructor must be selected' });
+    return;
+  }
   const resolvedStatus       = status ? String(status).toUpperCase() as ReservationStatus : existing.status;
   const isCanceling          = resolvedStatus === 'CANCELED' && existing.status !== 'CANCELED';
 

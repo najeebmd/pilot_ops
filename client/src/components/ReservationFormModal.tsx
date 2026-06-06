@@ -79,6 +79,7 @@ export default function ReservationFormModal({
     }
     if (!dateStart || !dateEnd) { setError('Start and end date/time are required'); return; }
     if (new Date(dateEnd) <= new Date(dateStart)) { setError('End time must be after start time'); return; }
+    if (!instructorId && !aircraftId) { setError('Please select at least an instructor or an aircraft'); return; }
     setSaving(true);
     try {
       const resolvedUserId = isEditing
