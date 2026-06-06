@@ -48,6 +48,7 @@ export default function ReservationsPage() {
   const [loading,        setLoading]        = useState(true);
 
   const [bookingSlot,  setBookingSlot]  = useState<{start: string; instructorId: number|null}|null>(null);
+  const [editTarget,   setEditTarget]   = useState<Reservation|null>(null);
   const [cancelTarget, setCancelTarget] = useState<Reservation|null>(null);
 
   // Load instructors + ready aircraft once; also load students if admin/staff
@@ -113,6 +114,14 @@ export default function ReservationsPage() {
     setBookingSlot(null);
     await loadDay();
     if (tab === 'mine') await loadMine();
+  }
+
+  async function handleEdit(data: import('../types/reservation').ReservationFormData) {
+    if (!editTarget) return;
+    await updateReservation(editTarget.id, data);
+    setEditTarget(null);
+    await loadDay();
+    await loadMine();
   }
 
   async function handleCancel() {
@@ -293,6 +302,10 @@ export default function ReservationsPage() {
                     </div>
                     {r.status === 'RESERVED' && (
                       <div className="res-card-actions">
+                        <button className="btn btn-secondary" style={{fontSize:'0.78rem',padding:'0.3rem 0.75rem'}}
+                          onClick={() => setEditTarget(r)}>
+                          ✏️ Edit
+                        </button>
                         <button className="btn btn-danger" style={{fontSize:'0.78rem',padding:'0.3rem 0.75rem'}}
                           onClick={() => setCancelTarget(r)}>
                           Cancel
@@ -317,6 +330,17 @@ export default function ReservationsPage() {
           defaultInstructorId={bookingSlot.instructorId}
           onSave={handleBook}
           onClose={() => setBookingSlot(null)}
+        />
+      )}
+
+      {editTarget && (
+        <ReservationFormModal
+          userId={user.id}
+          instructors={instructors}
+          aircraft={allAircraft}
+          existingReservation={editTarget}
+          onSave={handleEdit}
+          onClose={() => setEditTarget(null)}
         />
       )}
 

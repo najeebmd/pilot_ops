@@ -195,7 +195,7 @@
 .res-card-time { font-size: 0.875rem; color: #374151; }
 .res-card-details { display: flex; gap: 1.25rem; flex-wrap: wrap; font-size: 0.82rem; color: #374151; }
 .res-card-solo { color: #94a3b8; font-style: italic; }
-.res-card-actions { margin-top: 0.6rem; }
+.res-card-actions { margin-top: 0.6rem; display: flex; gap: 0.5rem; }
 .res-status-badge {
   font-size: 0.72rem; font-weight: 600; padding: 0.18rem 0.6rem;
   border-radius: 999px; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;

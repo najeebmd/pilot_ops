@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { ReservationFormData } from '../types/reservation';
+import type { Reservation, ReservationFormData } from '../types/reservation';
 import type { Aircraft } from '../types/aircraft';
 import StudentSearch, { type StudentOption } from './StudentSearch';
 import './ReservationFormModal.css';
@@ -13,6 +13,7 @@ interface Props {
   canSelectStudent?:    boolean;
   defaultStart?:        string;
   defaultInstructorId?: number | null;
+  existingReservation?: Reservation | null;   // when set → edit mode
   onSave:  (data: ReservationFormData) => Promise<void>;
   onClose: () => void;
 }
@@ -25,8 +26,10 @@ function toLocalInput(iso: string) {
 
 export default function ReservationFormModal({
   userId, instructors, aircraft, canSelectStudent = false,
-  defaultStart, defaultInstructorId, onSave, onClose,
+  defaultStart, defaultInstructorId, existingReservation, onSave, onClose,
 }: Props) {
+  const isEditing = !!existingReservation;
+
   const [selectedStudent, setSelectedStudent] = useState<StudentOption | null>(null);
   const [instructorId,    setInstructorId]    = useState<number | ''>('');
   const [aircraftId,      setAircraftId]      = useState<number | ''>('');
@@ -37,24 +40,35 @@ export default function ReservationFormModal({
 
   useEffect(() => {
     setSelectedStudent(null);
-    setInstructorId(defaultInstructorId ?? '');
     setError('');
-    if (defaultStart) {
-      const start = toLocalInput(defaultStart);
-      setDateStart(start);
-      const end = new Date(defaultStart);
-      end.setHours(end.getHours() + 1);
-      setDateEnd(toLocalInput(end.toISOString()));
+
+    if (existingReservation) {
+      // Edit mode: pre-fill from existing reservation
+      setDateStart(toLocalInput(existingReservation.date_start));
+      setDateEnd(toLocalInput(existingReservation.date_end));
+      setInstructorId(existingReservation.instructor_id ?? '');
+      setAircraftId(existingReservation.aircraft_id ?? '');
     } else {
-      setDateStart('');
-      setDateEnd('');
+      // Create mode
+      setInstructorId(defaultInstructorId ?? '');
+      setAircraftId('');
+      if (defaultStart) {
+        const start = toLocalInput(defaultStart);
+        setDateStart(start);
+        const end = new Date(defaultStart);
+        end.setHours(end.getHours() + 1);
+        setDateEnd(toLocalInput(end.toISOString()));
+      } else {
+        setDateStart('');
+        setDateEnd('');
+      }
     }
-  }, [defaultStart, defaultInstructorId, userId]);
+  }, [existingReservation, defaultStart, defaultInstructorId, userId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (canSelectStudent && !selectedStudent) {
+    if (!isEditing && canSelectStudent && !selectedStudent) {
       setError('Please search for and select a student');
       return;
     }
@@ -62,8 +76,11 @@ export default function ReservationFormModal({
     if (new Date(dateEnd) <= new Date(dateStart)) { setError('End time must be after start time'); return; }
     setSaving(true);
     try {
+      const resolvedUserId = isEditing
+        ? existingReservation!.user_id
+        : (canSelectStudent && selectedStudent ? selectedStudent.id : userId);
       await onSave({
-        user_id:       canSelectStudent && selectedStudent ? selectedStudent.id : userId,
+        user_id:       resolvedUserId,
         instructor_id: instructorId ? Number(instructorId) : null,
         aircraft_id:   aircraftId   ? Number(aircraftId)   : null,
         date_start:    new Date(dateStart).toISOString(),
@@ -84,14 +101,14 @@ export default function ReservationFormModal({
     <div className="modal-backdrop">
       <div className="modal res-modal">
         <div className="modal-header">
-          <h2>New Reservation</h2>
+          <h2>{isEditing ? 'Edit Reservation' : 'New Reservation'}</h2>
           <button className="btn-icon" onClick={onClose}>✕</button>
         </div>
 
         <form onSubmit={handleSubmit}>
 
-          {/* ── Student search (admin/staff only) ── */}
-          {canSelectStudent && (
+          {/* ── Student search (admin/staff only, create mode only) ── */}
+          {canSelectStudent && !isEditing && (
             <>
               <p className="form-section-label">
                 Student
@@ -167,7 +184,7 @@ export default function ReservationFormModal({
           <div className="modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Booking…' : 'Confirm Reservation'}
+              {saving ? 'Saving…' : isEditing ? 'Save Changes' : 'Confirm Reservation'}
             </button>
           </div>
         </form>
