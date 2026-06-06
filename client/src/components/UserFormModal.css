@@ -117,6 +117,33 @@
   background: #f5f3ff;
 }
 
+.pw-reset-section {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.pw-reset-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.pw-reset-form { margin-top: 0.75rem; }
+
+.pw-success {
+  font-size: 0.82rem;
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 6px;
+  padding: 0.4rem 0.65rem;
+  margin: 0.4rem 0 0;
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;

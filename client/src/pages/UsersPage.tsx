@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import type { User, UserFormData } from '../types/user';
 import { fetchUsers, createUser, updateUser, deleteUser } from '../api/users';
 import UserFormModal from '../components/UserFormModal';
@@ -38,6 +39,8 @@ function RolePill({ name }: { name: string }) {
 }
 
 export default function UsersPage() {
+  const { user: authUser } = useAuth();
+  const isAdminOrStaff = authUser?.roles.some(r => r === 'ADMIN' || r === 'STAFF') ?? false;
   const [users, setUsers]     = useState<User[]>([]);
   const [total, setTotal]     = useState(0);
   const [loading, setLoading] = useState(true);
@@ -216,7 +219,7 @@ export default function UsersPage() {
       </div>
 
       {editUser !== undefined && (
-        <UserFormModal user={editUser} onSave={handleSave} onClose={() => setEditUser(undefined)} />
+        <UserFormModal user={editUser} canResetPassword={isAdminOrStaff} onSave={handleSave} onClose={() => setEditUser(undefined)} />
       )}
 
       {viewUser && (

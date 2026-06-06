@@ -13,18 +13,26 @@ const EMPTY: UserFormData = {
 
 interface Props {
   user?: User | null;
+  canResetPassword?: boolean;   // admin/staff only
   onSave: (data: UserFormData) => Promise<void>;
   onClose: () => void;
 }
 
-export default function UserFormModal({ user, onSave, onClose }: Props) {
+export default function UserFormModal({ user, canResetPassword, onSave, onClose }: Props) {
   const isEdit = !!user;
-  const [form, setForm]       = useState<UserFormData>(EMPTY);
-  const [roles, setRoles]     = useState<Role[]>([]);
+  const [form, setForm]         = useState<UserFormData>(EMPTY);
+  const [roles, setRoles]       = useState<Role[]>([]);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [saving, setSaving]   = useState(false);
-  const [error, setError]     = useState('');
+  // Password reset (edit mode, admin/staff)
+  const [showReset,   setShowReset]   = useState(false);
+  const [newPw,       setNewPw]       = useState('');
+  const [confirmPw,   setConfirmPw]   = useState('');
+  const [pwSaving,    setPwSaving]    = useState(false);
+  const [pwMsg,       setPwMsg]       = useState('');
+  const [pwError,     setPwError]     = useState('');
+  const [saving, setSaving]     = useState(false);
+  const [error, setError]       = useState('');
 
   // Load available roles once
   useEffect(() => {
@@ -57,6 +65,9 @@ export default function UserFormModal({ user, onSave, onClose }: Props) {
       setPassword('');
     }
     setError('');
+    setShowReset(false);
+    setNewPw(''); setConfirmPw('');
+    setPwMsg(''); setPwError('');
   }, [user]);
 
   function set(field: keyof UserFormData, value: string) {
@@ -70,6 +81,31 @@ export default function UserFormModal({ user, onSave, onClose }: Props) {
         ? f.role_ids.filter((r) => r !== id)
         : [...f.role_ids, id],
     }));
+  }
+
+  async function handlePasswordReset(e: React.FormEvent) {
+    e.preventDefault();
+    setPwMsg(''); setPwError('');
+    if (newPw.length < 8) { setPwError('Password must be at least 8 characters'); return; }
+    if (newPw !== confirmPw) { setPwError('Passwords do not match'); return; }
+    setPwSaving(true);
+    try {
+      const token = localStorage.getItem('po_token');
+      const res = await fetch(`/api/users/${user!.id}/login/reset`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ new_password: newPw }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message ?? 'Failed to reset password');
+      setPwMsg('Password reset successfully.');
+      setNewPw(''); setConfirmPw('');
+      setShowReset(false);
+    } catch (err) {
+      setPwError(err instanceof Error ? err.message : 'Failed to reset password');
+    } finally {
+      setPwSaving(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -164,6 +200,42 @@ export default function UserFormModal({ user, onSave, onClose }: Props) {
               </div>
             </div>
           </div>
+
+          {/* Password reset — edit mode, admin/staff only */}
+          {isEdit && canResetPassword && (
+            <div className="pw-reset-section">
+              <div className="pw-reset-header">
+                <span className="form-section-label" style={{margin:0}}>Reset Password</span>
+                <button type="button" className="btn-filter-ctrl"
+                  onClick={() => { setShowReset(r => !r); setPwMsg(''); setPwError(''); setNewPw(''); setConfirmPw(''); }}>
+                  {showReset ? 'Cancel' : 'Change Password'}
+                </button>
+              </div>
+              {pwMsg && <p className="pw-success">{pwMsg}</p>}
+              {showReset && (
+                <form onSubmit={handlePasswordReset} className="pw-reset-form">
+                  <div className="form-grid">
+                    <div className="field">
+                      <label>New Password <span style={{fontWeight:400,color:'#94a3b8',fontSize:'0.75rem'}}>(min 8 chars)</span></label>
+                      <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)}
+                        autoComplete="new-password" required />
+                    </div>
+                    <div className="field">
+                      <label>Confirm Password</label>
+                      <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
+                        autoComplete="new-password" required />
+                    </div>
+                  </div>
+                  {pwError && <p className="form-error" style={{marginTop:'0.5rem'}}>{pwError}</p>}
+                  <div style={{marginTop:'0.75rem',display:'flex',justifyContent:'flex-end'}}>
+                    <button type="submit" className="btn btn-primary" disabled={pwSaving}>
+                      {pwSaving ? 'Resetting…' : 'Reset Password'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
 
           {/* Login credentials — create mode only */}
           {!isEdit && (

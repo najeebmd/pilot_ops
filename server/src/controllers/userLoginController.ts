@@ -62,6 +62,30 @@ export async function updateUserLogin(req: Request, res: Response) {
   res.json(login);
 }
 
+// Admin/Staff: reset any user's password without needing the current one
+export async function resetUserPassword(req: Request, res: Response) {
+  const user_id = Number(req.params.userId);
+  const { new_password } = req.body;
+
+  if (!new_password || String(new_password).length < 8) {
+    res.status(400).json({ message: 'new_password must be at least 8 characters' });
+    return;
+  }
+
+  const existing = await prisma.userLogin.findUnique({ where: { user_id } });
+  if (!existing) {
+    res.status(404).json({ message: 'Login not found for this user' });
+    return;
+  }
+
+  await prisma.userLogin.update({
+    where: { user_id },
+    data:  { password: await bcrypt.hash(String(new_password), SALT_ROUNDS) },
+  });
+
+  res.json({ message: 'Password reset successfully' });
+}
+
 export async function deleteUserLogin(req: Request, res: Response) {
   const user_id = Number(req.params.userId);
 
