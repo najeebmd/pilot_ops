@@ -69,7 +69,11 @@ export default function ReservationsPage() {
 
   // Load instructors + ready aircraft once; also load students if admin/staff
   useEffect(() => {
-    fetchUsers({ role: 'INSTRUCTOR', pageSize: 100 } as any).then(r => setInstructors(r.data as any));
+    fetchUsers({ role: 'INSTRUCTOR', pageSize: 100 } as any).then(r =>
+      setInstructors((r.data as any[]).sort((a, b) =>
+        `${a.last_name} ${a.first_name}`.localeCompare(`${b.last_name} ${b.first_name}`)
+      ))
+    );
     fetchAircraft({ pageSize: 100, status: 'READY' }).then(r => setAllAircraft(r.data));
   }, []);
 
