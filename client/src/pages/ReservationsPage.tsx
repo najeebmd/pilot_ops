@@ -385,7 +385,7 @@ export default function ReservationsPage() {
           instructors={instructors}
           aircraft={allAircraft}
           existingReservation={editTarget}
-          onDelete={isAdminOrStaff ? handleDeleteReservation : undefined}
+          onDelete={handleDeleteReservation}
           onSave={handleEdit}
           onClose={() => setEditTarget(null)}
         />
