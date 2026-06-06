@@ -34,6 +34,19 @@ async function assertInstructor(instructor_id: number): Promise<string | null> {
   return null;
 }
 
+/** Reserving an aircraft without an instructor requires the PILOT role. */
+async function assertPilotForSoloAircraft(user_id: number): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: user_id },
+    include: { roles: { include: { role: true } } },
+  });
+  if (!user) return 'User not found';
+  const hasPilot = user.roles.some((r) => r.role.name === 'PILOT' || r.role.name === 'INSTRUCTOR');
+  if (!hasPilot)
+    return 'You must have the Pilot role to reserve an aircraft without an instructor';
+  return null;
+}
+
 // ── Aircraft conflict: check AircraftSchedule ─────────────────────────────────
 async function checkAircraftConflict(
   aircraft_id: number, start: Date, end: Date, excludeReservationId?: number,
@@ -211,6 +224,12 @@ export async function createReservation(req: Request, res: Response) {
 
     const conflict = await checkAircraftConflict(Number(aircraft_id), start, end);
     if (conflict) { res.status(409).json({ message: conflict }); return; }
+
+    // Solo aircraft reservation requires PILOT role
+    if (!instructor_id) {
+      const pilotErr = await assertPilotForSoloAircraft(Number(user_id));
+      if (pilotErr) { res.status(403).json({ message: pilotErr }); return; }
+    }
   }
 
   // Instructor checks
@@ -273,6 +292,13 @@ export async function updateReservation(req: Request, res: Response) {
   if (resolvedAircraftId && !isCanceling) {
     const conflict = await checkAircraftConflict(resolvedAircraftId, start, end, id);
     if (conflict) { res.status(409).json({ message: conflict }); return; }
+
+    // Solo aircraft reservation requires PILOT role
+    const resolvedUserId = user_id ? Number(user_id) : existing.user_id;
+    if (!resolvedInstructorId) {
+      const pilotErr = await assertPilotForSoloAircraft(resolvedUserId);
+      if (pilotErr) { res.status(403).json({ message: pilotErr }); return; }
+    }
   }
 
   // Instructor conflict checks
