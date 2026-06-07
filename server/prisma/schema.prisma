@@ -130,6 +130,7 @@ model Aircraft {
   model                String
   year_built           Int
   flight_hours         Float          @default(0)
+  seats                Int?
   fuel_capacity        Float?
   weight               Float?
   status               AircraftStatus @default(READY)

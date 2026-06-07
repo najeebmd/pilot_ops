@@ -17,7 +17,7 @@ const STATUSES: { value: AircraftStatus; label: string; color: string }[] = [
 const EMPTY: AircraftFormData = {
   tail_number: '', serial_number: '', make: '', model: '',
   year_built: new Date().getFullYear(), flight_hours: 0,
-  fuel_capacity: null, weight: null, status: 'READY',
+  seats: null, fuel_capacity: null, weight: null, status: 'READY',
   rental_rate: null, next_inspection_date: null,
 };
 
@@ -35,6 +35,7 @@ export default function AircraftFormModal({ aircraft, onSave, onClose }: Props) 
         model:                aircraft.model,
         year_built:           aircraft.year_built,
         flight_hours:         aircraft.flight_hours,
+        seats:                aircraft.seats,
         fuel_capacity:        aircraft.fuel_capacity,
         weight:               aircraft.weight,
         status:               aircraft.status,
@@ -132,6 +133,13 @@ export default function AircraftFormModal({ aircraft, onSave, onClose }: Props) 
               <input type="number" min="0" step="0.1"
                 value={form.flight_hours ?? ''}
                 onChange={(e) => setNum('flight_hours', e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label>Seats</label>
+              <input type="number" min="1" step="1"
+                value={form.seats ?? ''}
+                onChange={(e) => setNum('seats', e.target.value)}
               />
             </div>
             <div className="field">

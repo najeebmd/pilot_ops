@@ -5,7 +5,7 @@ import prisma from '../lib/prisma';
 const VALID_STATUSES = new Set<string>(['READY', 'MAINTENANCE', 'NOT_AVAILABLE']);
 const SORTABLE = new Set([
   'tail_number', 'serial_number', 'make', 'model', 'year_built',
-  'flight_hours', 'status', 'rental_rate', 'next_inspection_date', 'date_created', 'date_updated',
+  'flight_hours', 'seats', 'status', 'rental_rate', 'next_inspection_date', 'date_created', 'date_updated',
 ]);
 
 // ── GET /api/aircraft ─────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ export async function getAircraftById(req: Request, res: Response) {
 export async function createAircraft(req: Request, res: Response) {
   const {
     tail_number, serial_number, make, model, year_built,
-    flight_hours, fuel_capacity, weight, status,
+    flight_hours, seats, fuel_capacity, weight, status,
     rental_rate, next_inspection_date,
   } = req.body;
 
@@ -71,11 +71,12 @@ export async function createAircraft(req: Request, res: Response) {
       make:                 String(make),
       model:                String(model),
       year_built:           Number(year_built),
-      flight_hours:         flight_hours         != null ? Number(flight_hours)  : 0,
-      fuel_capacity:        fuel_capacity         != null ? Number(fuel_capacity) : undefined,
-      weight:               weight               != null ? Number(weight)        : undefined,
+      flight_hours:         flight_hours  != null ? Number(flight_hours)  : 0,
+      seats:                seats         != null ? Number(seats)         : undefined,
+      fuel_capacity:        fuel_capacity != null ? Number(fuel_capacity) : undefined,
+      weight:               weight        != null ? Number(weight)        : undefined,
       status:               status ? String(status).toUpperCase() as AircraftStatus : 'READY',
-      rental_rate:          rental_rate           != null ? Number(rental_rate)   : undefined,
+      rental_rate:          rental_rate          != null ? Number(rental_rate)   : undefined,
       next_inspection_date: next_inspection_date  ? new Date(next_inspection_date) : undefined,
     },
   });
@@ -87,7 +88,7 @@ export async function updateAircraft(req: Request, res: Response) {
   const id = Number(req.params.id);
   const {
     tail_number, serial_number, make, model, year_built,
-    flight_hours, fuel_capacity, weight, status,
+    flight_hours, seats, fuel_capacity, weight, status,
     rental_rate, next_inspection_date,
   } = req.body;
 
@@ -111,6 +112,7 @@ export async function updateAircraft(req: Request, res: Response) {
       model:                model                ? String(model)                                : undefined,
       year_built:           year_built           != null ? Number(year_built)                  : undefined,
       flight_hours:         flight_hours         != null ? Number(flight_hours)                : undefined,
+      seats:                seats                != null ? Number(seats)                       : undefined,
       fuel_capacity:        fuel_capacity        != null ? Number(fuel_capacity)               : undefined,
       weight:               weight               != null ? Number(weight)                      : undefined,
       status:               status               ? String(status).toUpperCase() as AircraftStatus : undefined,

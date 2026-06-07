@@ -8,6 +8,7 @@ export interface Aircraft {
   model:                string;
   year_built:           number;
   flight_hours:         number;
+  seats:                number | null;
   fuel_capacity:        number | null;
   weight:               number | null;
   status:               AircraftStatus;

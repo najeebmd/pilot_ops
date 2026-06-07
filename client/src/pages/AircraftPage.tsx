@@ -5,7 +5,7 @@ import { fetchAircraft, createAircraft, updateAircraft } from '../api/aircraft';
 import AircraftFormModal from '../components/AircraftFormModal';
 import './AircraftPage.css';
 
-type SortKey = 'tail_number' | 'make' | 'model' | 'year_built' | 'flight_hours' | 'status' | 'rental_rate' | 'next_inspection_date';
+type SortKey = 'tail_number' | 'make' | 'model' | 'year_built' | 'flight_hours' | 'status' | 'rental_rate' | 'next_inspection_date' | 'seats';
 type SortOrder = 'asc' | 'desc';
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
@@ -30,6 +30,7 @@ const COLS: Col[] = [
   { key: 'model',                label: 'Model' },
   { key: 'year_built',           label: 'Year' },
   { key: 'flight_hours',         label: 'Hours' },
+  { key: 'seats',                label: 'Seats' },
   { key: 'status',               label: 'Status' },
   { key: 'rental_rate',          label: 'Rate/hr' },
   { key: 'next_inspection_date', label: 'Next Inspection' },
@@ -168,6 +169,7 @@ export default function AircraftPage() {
                   <td>{a.model}</td>
                   <td>{a.year_built}</td>
                   <td>{a.flight_hours.toLocaleString(undefined, { maximumFractionDigits: 1 })} h</td>
+                  <td>{a.seats ?? '—'}</td>
                   <td>
                     <span className="status-badge" style={{ background: meta.bg, color: meta.color }}>
                       {meta.label}

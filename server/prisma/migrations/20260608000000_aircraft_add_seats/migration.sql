@@ -1,0 +1,1 @@
+ALTER TABLE "Aircraft" ADD COLUMN "seats" INTEGER;
