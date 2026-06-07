@@ -199,18 +199,20 @@ export default function SchedulePage() {
                         >
                           <div className="entry-card-top">
                             <span className="entry-type" style={{ color: meta.color }}>{meta.label}</span>
-                            <div className="entry-actions">
-                              <button
-                                className="btn-icon-sm"
-                                title="Edit"
-                                onClick={() => { setEditEntry(entry); setDefaultStart(undefined); }}
-                              >✏️</button>
-                              <button
-                                className="btn-icon-sm"
-                                title="Delete"
-                                onClick={() => setDeleteTarget(entry)}
-                              >🗑️</button>
-                            </div>
+                            {entry.activity_type !== 'INSTRUCTION' && (
+                              <div className="entry-actions">
+                                <button
+                                  className="btn-icon-sm"
+                                  title="Edit"
+                                  onClick={() => { setEditEntry(entry); setDefaultStart(undefined); }}
+                                >✏️</button>
+                                <button
+                                  className="btn-icon-sm"
+                                  title="Delete"
+                                  onClick={() => setDeleteTarget(entry)}
+                                >🗑️</button>
+                              </div>
+                            )}
                           </div>
                           <div className="entry-time">
                             {fmtTime(entry.date_start)} – {fmtTime(entry.date_end)}
@@ -255,10 +257,12 @@ export default function SchedulePage() {
                       <span className="list-entry-type" style={{ background: meta.bg, color: meta.color }}>
                         {meta.label}
                       </span>
-                      <div className="list-entry-actions">
-                        <button className="btn-icon-sm" onClick={() => { setEditEntry(entry); setDefaultStart(undefined); }}>✏️</button>
-                        <button className="btn-icon-sm" onClick={() => setDeleteTarget(entry)}>🗑️</button>
-                      </div>
+                      {entry.activity_type !== 'INSTRUCTION' && (
+                        <div className="list-entry-actions">
+                          <button className="btn-icon-sm" onClick={() => { setEditEntry(entry); setDefaultStart(undefined); }}>✏️</button>
+                          <button className="btn-icon-sm" onClick={() => setDeleteTarget(entry)}>🗑️</button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

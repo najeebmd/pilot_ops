@@ -11,7 +11,6 @@ interface Props {
 }
 
 const ACTIVITY_OPTIONS: { value: ActivityType; label: string; color: string }[] = [
-  { value: 'INSTRUCTION',    label: 'Instruction',    color: '#0ea5e9' },
   { value: 'OTHER',          label: 'Other',          color: '#8b5cf6' },
   { value: 'NOT_AVAILABLE',  label: 'Not Available',  color: '#ef4444' },
 ];
@@ -28,7 +27,7 @@ function toISO(localStr: string) {
 }
 
 export default function ScheduleFormModal({ entry, instructorId, defaultStart, onSave, onClose }: Props) {
-  const [activityType, setActivityType] = useState<ActivityType>('INSTRUCTION');
+  const [activityType, setActivityType] = useState<ActivityType>('OTHER');
   const [dateStart, setDateStart]       = useState('');
   const [dateEnd, setDateEnd]           = useState('');
   const [saving, setSaving]             = useState(false);

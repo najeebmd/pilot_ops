@@ -10,7 +10,7 @@ const NAV_ITEMS = [
   { to: '/instructors', label: 'Instructors',   adminOnly: false },
   { to: '/courses',     label: 'Courses',       adminOnly: false },
   { to: '/aircraft',    label: 'Aircraft',      adminOnly: false },
-  { to: '/schedule',    label: 'Schedule',      adminOnly: false },
+  { to: '/schedule',    label: 'My Schedule',   adminOnly: false },
   { to: '/reservations',label: 'Reservations',  adminOnly: false },
 ];
 
