@@ -5,13 +5,13 @@ import AuthModal from '../AuthModal';
 import './Navbar.css';
 
 const NAV_ITEMS = [
-  { to: '/',            label: 'Home',         adminOnly: false },
-  { to: '/students',    label: 'Users',         adminOnly: true  },
-  { to: '/instructors', label: 'Instructors',   adminOnly: false },
-  { to: '/courses',     label: 'Courses',       adminOnly: false },
-  { to: '/aircraft',    label: 'Aircraft',      adminOnly: false },
-  { to: '/schedule',    label: 'My Schedule',   adminOnly: false },
-  { to: '/reservations',label: 'Reservations',  adminOnly: false },
+  { to: '/',            label: 'Home',         adminOnly: false, instructorOnly: false },
+  { to: '/students',    label: 'Users',         adminOnly: true,  instructorOnly: false },
+  { to: '/instructors', label: 'Instructors',   adminOnly: false, instructorOnly: false },
+  { to: '/courses',     label: 'Courses',       adminOnly: false, instructorOnly: false },
+  { to: '/aircraft',    label: 'Aircraft',      adminOnly: false, instructorOnly: false },
+  { to: '/schedule',    label: 'My Schedule',   adminOnly: false, instructorOnly: true  },
+  { to: '/reservations',label: 'Reservations',  adminOnly: false, instructorOnly: false },
 ];
 
 export default function Navbar() {
@@ -21,8 +21,12 @@ export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   const isAdminOrStaff = user?.roles.some(r => r === 'ADMIN' || r === 'STAFF') ?? false;
+  const isInstructor   = user?.roles.includes('INSTRUCTOR') ?? false;
 
-  const visibleItems = NAV_ITEMS.filter(item => !item.adminOnly || isAdminOrStaff);
+  const visibleItems = NAV_ITEMS.filter(item =>
+    (!item.adminOnly      || isAdminOrStaff) &&
+    (!item.instructorOnly || isInstructor)
+  );
 
   return (
     <>

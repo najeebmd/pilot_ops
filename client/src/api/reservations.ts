@@ -9,6 +9,7 @@ export interface ReservationsPage {
 export async function fetchReservations(params: {
   user_id?: number; instructor_id?: number; aircraft_id?: number;
   status?: string; date_from?: string; date_to?: string;
+  start_from?: string; start_to?: string;
   page?: number; pageSize?: number; sortBy?: string; sortOrder?: 'asc'|'desc';
 } = {}): Promise<ReservationsPage> {
   const qs = new URLSearchParams();

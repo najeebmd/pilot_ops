@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
 import type { Aircraft, AircraftFormData, AircraftStatus } from '../types/aircraft';
 import { fetchAircraft, createAircraft, updateAircraft } from '../api/aircraft';
 import AircraftFormModal from '../components/AircraftFormModal';
@@ -40,6 +41,9 @@ function fmt(n: number | null, prefix = '', suffix = '', decimals = 0) {
 }
 
 export default function AircraftPage() {
+  const { user } = useAuth();
+  const canEdit  = user?.roles.some(r => r === 'ADMIN' || r === 'STAFF') ?? false;
+
   const [aircraft, setAircraft] = useState<Aircraft[]>([]);
   const [total, setTotal]       = useState(0);
   const [loading, setLoading]   = useState(true);
@@ -101,7 +105,7 @@ export default function AircraftPage() {
           <h1>Aircraft</h1>
           <p className="page-subtitle">{total} in fleet</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setEditAircraft(null)}>+ Add Aircraft</button>
+        {canEdit && <button className="btn btn-primary" onClick={() => setEditAircraft(null)}>+ Add Aircraft</button>}
       </div>
 
       {/* Status summary cards */}
@@ -145,20 +149,20 @@ export default function AircraftPage() {
                   {col.label} <SortIcon col={col.key} />
                 </th>
               ))}
-              <th></th>
+              {canEdit && <th></th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={COLS.length + 1} className="td-state">Loading…</td></tr>
+              <tr><td colSpan={COLS.length + (canEdit ? 1 : 0)} className="td-state">Loading…</td></tr>
             ) : aircraft.length === 0 ? (
-              <tr><td colSpan={COLS.length + 1} className="td-state">No aircraft found.</td></tr>
+              <tr><td colSpan={COLS.length + (canEdit ? 1 : 0)} className="td-state">No aircraft found.</td></tr>
             ) : aircraft.map((a) => {
               const meta = STATUS_META[a.status];
               const inspectionDate = a.next_inspection_date ? new Date(a.next_inspection_date) : null;
               const inspectionSoon = inspectionDate && (inspectionDate.getTime() - Date.now()) < 30 * 24 * 60 * 60 * 1000;
               return (
-                <tr key={a.id} className="table-row" onClick={() => setEditAircraft(a)}>
+                <tr key={a.id} className="table-row" onClick={canEdit ? () => setEditAircraft(a) : undefined}>
                   <td><span className="tail-number">{a.tail_number}</span></td>
                   <td>{a.make}</td>
                   <td>{a.model}</td>
@@ -176,9 +180,11 @@ export default function AircraftPage() {
                       : '—'}
                     {inspectionSoon && ' ⚠'}
                   </td>
-                  <td className="td-actions" onClick={(e) => e.stopPropagation()}>
-                    <button className="btn-icon-sm" title="Edit" onClick={() => setEditAircraft(a)}>✏️</button>
-                  </td>
+                  {canEdit && (
+                    <td className="td-actions" onClick={(e) => e.stopPropagation()}>
+                      <button className="btn-icon-sm" title="Edit" onClick={() => setEditAircraft(a)}>✏️</button>
+                    </td>
+                  )}
                 </tr>
               );
             })}

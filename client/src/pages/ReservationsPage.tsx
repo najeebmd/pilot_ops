@@ -3,7 +3,6 @@ import { useAuth } from '../context/AuthContext';
 import { fetchReservations, createReservation, updateReservation, deleteReservation } from '../api/reservations';
 import { fetchAircraft } from '../api/aircraft';
 import { fetchSchedule } from '../api/schedule';
-import { fetchUsers } from '../api/users';
 import { fetchAircraftSchedule } from '../api/aircraftSchedule';
 import type { AircraftScheduleEntry } from '../api/aircraftSchedule';
 import type { Reservation } from '../types/reservation';
@@ -83,14 +82,27 @@ export default function ReservationsPage() {
   const [bookingSlot,  setBookingSlot]  = useState<{start: string; instructorId: number|null; aircraftId?: number|null}|null>(null);
   const [editTarget,   setEditTarget]   = useState<Reservation|null>(null);
   const [cancelTarget, setCancelTarget] = useState<Reservation|null>(null);
+  const [filterUserId, setFilterUserId] = useState<number | ''>('');
 
-  // Load instructors + ready aircraft once; also load students if admin/staff
+  // Date range filter for the All Reservations list (defaults to today → no upper bound)
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [listDateFrom, setListDateFrom] = useState(todayStr);
+  const [listDateTo,   setListDateTo]   = useState('');
+
+  // Load instructors + aircraft once
   useEffect(() => {
-    fetchUsers({ role: 'INSTRUCTOR', pageSize: 100 } as any).then(r =>
-      setInstructors((r.data as any[]).sort((a, b) =>
-        `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`)
-      ))
-    );
+    const token = localStorage.getItem('po_token');
+    const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+    fetch('/api/instructor-rates', { headers: authHeaders })
+      .then(r => r.ok ? r.json() : [])
+      .then((rates: { instructor_id: number; status: string; user: { id: number; first_name: string; last_name: string } }[]) => {
+        const active = rates
+          .filter(r => r.status !== 'INACTIVE')
+          .map(r => ({ id: r.user.id, first_name: r.user.first_name, last_name: r.user.last_name }))
+          .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`));
+        setInstructors(active);
+      });
     fetchAircraft({ pageSize: 100 }).then(r => setAllAircraft(r.data));
   }, []);
 
@@ -119,16 +131,19 @@ export default function ReservationsPage() {
 
   const loadMine = useCallback(async () => {
     if (!user) return;
-    // Admin/staff see all reservations; students only see their own
+    const dateParams = {
+      ...(listDateFrom ? { start_from: new Date(listDateFrom).toISOString() } : {}),
+      ...(listDateTo   ? { start_to:   new Date(listDateTo + 'T23:59:59').toISOString() } : {}),
+    };
     const params = isAdminOrStaff
-      ? { pageSize: 200, sortBy: 'date_start', sortOrder: 'desc' as const }
-      : { user_id: user.id, pageSize: 100, sortBy: 'date_start', sortOrder: 'desc' as const };
+      ? { pageSize: 500, sortBy: 'date_start', sortOrder: 'desc' as const, ...dateParams }
+      : { user_id: user.id, pageSize: 200, sortBy: 'date_start', sortOrder: 'desc' as const, ...dateParams };
     const r = await fetchReservations(params);
     setMyReservations(r.data);
-  }, [user, isAdminOrStaff]);
+  }, [user, isAdminOrStaff, listDateFrom, listDateTo]);
 
   useEffect(() => { loadDay(); }, [loadDay]);
-  useEffect(() => { if (tab === 'mine') loadMine(); }, [tab, loadMine]);
+  useEffect(() => { if (tab === 'mine') loadMine(); }, [tab, loadMine, listDateFrom, listDateTo]);
 
   // ── Cell helpers ──────────────────────────────────────────────────────────
   function slotRange(hour: number) {
@@ -395,7 +410,7 @@ export default function ReservationsPage() {
                             className={cls}
                             onClick={isClickable ? handleCellClick : undefined}
                             style={isClickable ? { cursor: 'pointer' } : undefined}
-                            title={canBook ? `Book ${instructor.first_name} at ${fmtHour(hour)}`
+                            title={canBook ? `Reserve ${instructor.first_name} at ${fmtHour(hour)}`
                               : canEdit   ? `Edit reservation at ${fmtHour(hour)}`
                               : status === 'busy' ? 'Unavailable' : undefined}
                           >
@@ -415,7 +430,7 @@ export default function ReservationsPage() {
                           className="btn-book-quick"
                           onClick={() => openBooking(new Date().getHours(), instructor.id)}
                         >
-                          Book
+                          Reserve
                         </button>
                       </td>
                     </tr>
@@ -511,9 +526,9 @@ export default function ReservationsPage() {
                   {sortedAircraft.filter(ac => !hiddenAircraft.has(ac.id)).map(ac => (
                     <tr key={ac.id} className="avail-row">
                       <td className="avail-td-instructor">
-                        <div className="avail-instructor-info">
+                        <div className="avail-aircraft-info">
                           <span className="avail-instructor-name">{ac.tail_number}</span>
-                          <span style={{fontSize:'0.72rem',color:'#64748b'}}>{ac.make} {ac.model}</span>
+                          <span className="avail-aircraft-sub">{ac.make} {ac.model}</span>
                         </div>
                       </td>
 
@@ -547,7 +562,7 @@ export default function ReservationsPage() {
                             onClick={isClickable ? handleFleetCell : undefined}
                             style={isClickable ? { cursor: 'pointer' } : undefined}
                             title={
-                              canBook ? `Book ${ac.tail_number} at ${fmtHour(hour)}`
+                              canBook ? `Reserve ${ac.tail_number} at ${fmtHour(hour)}`
                               : canEdit ? `Edit reservation at ${fmtHour(hour)}`
                               : state === 'reserved' ? 'Already reserved'
                               : state === 'unavailable' ? 'Unavailable / Maintenance'
@@ -565,7 +580,7 @@ export default function ReservationsPage() {
                           className="btn-book-quick"
                           onClick={() => openBooking(new Date().getHours(), null, ac.id)}
                         >
-                          Book
+                          Reserve
                         </button>
                       </td>
                     </tr>
@@ -588,13 +603,69 @@ export default function ReservationsPage() {
       )}
 
       {/* ── MY RESERVATIONS ── */}
-      {tab === 'mine' && (
+      {tab === 'mine' && (() => {
+        const studentOptions = isAdminOrStaff
+          ? [...new Map(myReservations.map(r => [r.user_id, r.user])).values()]
+              .sort((a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`))
+          : [];
+        const visibleReservations = filterUserId
+          ? myReservations.filter(r => r.user_id === filterUserId)
+          : myReservations;
+
+        return (
         <div className="my-reservations">
-          {myReservations.length === 0 ? (
-            <p className="res-state">You have no reservations yet.</p>
+          <div className="res-filters">
+            <div className="res-filter-group">
+              <label className="res-user-filter-label">Date from</label>
+              <input
+                type="date"
+                className="res-date-input"
+                value={listDateFrom}
+                onChange={e => setListDateFrom(e.target.value)}
+              />
+            </div>
+            <div className="res-filter-group">
+              <label className="res-user-filter-label">Date to</label>
+              <input
+                type="date"
+                className="res-date-input"
+                value={listDateTo}
+                min={listDateFrom || undefined}
+                onChange={e => setListDateTo(e.target.value)}
+              />
+            </div>
+            {(listDateFrom !== todayStr || listDateTo) && (
+              <button
+                className="res-user-filter-clear"
+                onClick={() => { setListDateFrom(todayStr); setListDateTo(''); }}
+              >
+                ✕ Reset dates
+              </button>
+            )}
+            {isAdminOrStaff && studentOptions.length > 0 && (
+              <div className="res-filter-group res-filter-group--divider">
+                <label className="res-user-filter-label">Student</label>
+                <select
+                  className="res-user-filter-select"
+                  value={filterUserId}
+                  onChange={e => setFilterUserId(e.target.value ? Number(e.target.value) : '')}
+                >
+                  <option value="">All students</option>
+                  {studentOptions.map(u => (
+                    <option key={u.id} value={u.id}>{u.first_name} {u.last_name}</option>
+                  ))}
+                </select>
+                {filterUserId && (
+                  <button className="res-user-filter-clear" onClick={() => setFilterUserId('')}>✕</button>
+                )}
+              </div>
+            )}
+          </div>
+          {visibleReservations.length === 0 ? (
+            <p className="res-state">{myReservations.length === 0 ? 'You have no reservations yet.' : 'No reservations match the filter.'}</p>
           ) : (
             <div className="res-list">
-              {myReservations.map(r => {
+              {visibleReservations.map(r => {
                 const meta = STATUS_META[r.status];
                 const start = new Date(r.date_start);
                 const end   = new Date(r.date_end);
@@ -641,7 +712,8 @@ export default function ReservationsPage() {
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
 
       {bookingSlot && (
         <ReservationFormModal

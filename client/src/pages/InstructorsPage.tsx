@@ -1,26 +1,27 @@
 import { useEffect, useState } from 'react';
-import { fetchUsers } from '../api/users';
-import type { User } from '../types/user';
 import { useAuth } from '../context/AuthContext';
 import InstructorEditModal from '../components/InstructorEditModal';
 import './InstructorsPage.css';
 
-interface InstructorInfo { rate: number | null; status: string }
-interface RateMap { [instructor_id: number]: InstructorInfo }
+interface InstructorRecord {
+  instructor_id: number;
+  regular_rate:  number;
+  status:        string;
+  user:          { id: number; first_name: string; last_name: string; email: string };
+}
 
 function authHeaders(): Record<string, string> {
   const t = localStorage.getItem('po_token');
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
-async function fetchRates(): Promise<RateMap> {
+async function fetchInstructors(): Promise<InstructorRecord[]> {
   try {
     const res = await fetch('/api/instructor-rates', { headers: authHeaders() });
-    if (!res.ok) return {};
-    const data: { instructor_id: number; regular_rate: number; status: string }[] = await res.json();
-    return Object.fromEntries(data.map(r => [r.instructor_id, { rate: r.regular_rate, status: r.status }]));
+    if (!res.ok) return [];
+    return res.json();
   } catch {
-    return {};
+    return [];
   }
 }
 
@@ -40,26 +41,21 @@ export default function InstructorsPage() {
   const { user }   = useAuth();
   const canEdit    = ['ADMIN', 'STAFF'].some(r => user?.roles.includes(r));
 
-  const [instructors, setInstructors] = useState<User[]>([]);
-  const [rates,       setRates]       = useState<RateMap>({});
-  const [loading,     setLoading]     = useState(true);
-  const [search,      setSearch]      = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [debounce,    setDebounce]    = useState<ReturnType<typeof setTimeout>|null>(null);
-  const [editing,      setEditing]      = useState<User | null>(null);
+  const [records,      setRecords]      = useState<InstructorRecord[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [searchInput,  setSearchInput]  = useState('');
+  const [search,       setSearch]       = useState('');
+  const [debounce,     setDebounce]     = useState<ReturnType<typeof setTimeout> | null>(null);
   const [showInactive, setShowInactive] = useState(true);
+  const [editing,      setEditing]      = useState<InstructorRecord | null>(null);
 
-  useEffect(() => { load(); }, [search]);
+  useEffect(() => { load(); }, []);
 
   async function load() {
     setLoading(true);
     try {
-      const [usersResult, rateMap] = await Promise.all([
-        fetchUsers({ role: 'INSTRUCTOR', pageSize: 100, sortBy: 'first_name', sortOrder: 'asc', search: search || undefined }),
-        fetchRates(),
-      ]);
-      setInstructors(usersResult.data);
-      setRates(rateMap);
+      const data = await fetchInstructors();
+      setRecords(data);
     } finally {
       setLoading(false);
     }
@@ -68,18 +64,23 @@ export default function InstructorsPage() {
   function handleSearchInput(v: string) {
     setSearchInput(v);
     if (debounce) clearTimeout(debounce);
-    setDebounce(setTimeout(() => setSearch(v.trim()), 350));
+    setDebounce(setTimeout(() => setSearch(v.trim().toLowerCase()), 350));
   }
 
   async function handleSave(rate: number, status: string) {
     if (!editing) return;
-    await putInstructorInfo(editing.id, rate, status);
+    await putInstructorInfo(editing.instructor_id, rate, status);
     setEditing(null);
     await load();
   }
 
-  const visible = instructors.filter(instr => {
-    if (rates[instr.id]?.status === 'INACTIVE') return canEdit && showInactive;
+  const visible = records.filter(rec => {
+    if (rec.status === 'INACTIVE' && !canEdit) return false;
+    if (rec.status === 'INACTIVE' && canEdit && !showInactive) return false;
+    if (search) {
+      const name = `${rec.user.first_name} ${rec.user.last_name}`.toLowerCase();
+      if (!name.includes(search) && !rec.user.email.toLowerCase().includes(search)) return false;
+    }
     return true;
   });
 
@@ -118,29 +119,26 @@ export default function InstructorsPage() {
         <p style={{padding:'3rem',textAlign:'center',color:'#9ca3af'}}>No instructors found.</p>
       ) : (
         <div className="instr-grid">
-          {visible.map(instr => {
-            const info     = rates[instr.id];
-            const inactive = info?.status === 'INACTIVE';
+          {visible.map(rec => {
+            const inactive = rec.status === 'INACTIVE';
             return (
               <div
-                key={instr.id}
+                key={rec.instructor_id}
                 className={`instr-card${canEdit ? '' : ' instr-card--static'}${inactive ? ' instr-card--inactive' : ''}`}
-                onClick={canEdit ? () => setEditing(instr) : undefined}
+                onClick={canEdit ? () => setEditing(rec) : undefined}
                 title={canEdit ? 'Click to edit' : undefined}
               >
                 <div className="instr-card-avatar">
-                  {instr.first_name[0]}{instr.last_name[0]}
+                  {rec.user.first_name[0]}{rec.user.last_name[0]}
                 </div>
                 <div className="instr-card-body">
                   <div className="instr-card-name-row">
-                    <p className="instr-card-name">{instr.first_name} {instr.last_name}</p>
+                    <p className="instr-card-name">{rec.user.first_name} {rec.user.last_name}</p>
                     {inactive && <span className="instr-status-badge">Inactive</span>}
                   </div>
-                  {info?.rate != null && (
-                    <span className="instr-rate-badge">
-                      ${info.rate.toFixed(2)}<span className="instr-rate-unit">/hr</span>
-                    </span>
-                  )}
+                  <span className="instr-rate-badge">
+                    ${rec.regular_rate.toFixed(2)}<span className="instr-rate-unit">/hr</span>
+                  </span>
                 </div>
               </div>
             );
@@ -150,9 +148,9 @@ export default function InstructorsPage() {
 
       {editing && (
         <InstructorEditModal
-          instructor={editing}
-          rate={rates[editing.id]?.rate ?? null}
-          status={rates[editing.id]?.status ?? 'ACTIVE'}
+          instructor={{ id: editing.instructor_id, first_name: editing.user.first_name, last_name: editing.user.last_name }}
+          rate={editing.regular_rate}
+          status={editing.status}
           onSave={handleSave}
           onClose={() => setEditing(null)}
         />

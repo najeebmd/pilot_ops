@@ -186,6 +186,17 @@ export async function getReservations(req: Request, res: Response) {
   if (dateFrom) where.date_start = { ...(where.date_start as object ?? {}), lt: dateTo };
   if (dateTo)   where.date_end   = { ...(where.date_end   as object ?? {}), gt: dateFrom };
 
+  // start_from / start_to: filter by date_start range (for list views)
+  const startFrom = req.query.start_from ? new Date(String(req.query.start_from)) : undefined;
+  const startTo   = req.query.start_to   ? new Date(String(req.query.start_to))   : undefined;
+  if (startFrom || startTo) {
+    where.date_start = {
+      ...(where.date_start as object ?? {}),
+      ...(startFrom ? { gte: startFrom } : {}),
+      ...(startTo   ? { lte: startTo }   : {}),
+    };
+  }
+
   const [reservations, total] = await Promise.all([
     prisma.reservation.findMany({
       where,

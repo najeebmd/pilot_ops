@@ -183,8 +183,8 @@
 }
 
 .avail-th-action {
-  width: 64px;
-  min-width: 64px;
+  width: 84px;
+  min-width: 84px;
   border-bottom: 2px solid #e2e8f0;
   border-left: 2px solid #e2e8f0;
 }
@@ -214,6 +214,17 @@
   font-weight: 600;
   color: #0f172a;
   font-size: 0.82rem;
+}
+
+.avail-aircraft-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.avail-aircraft-sub {
+  font-size: 0.72rem;
+  color: #64748b;
 }
 
 .cal-avatar {
@@ -259,6 +270,7 @@
   text-align: center;
   padding: 0.35rem 0.5rem;
   border-left: 2px solid #e2e8f0;
+  min-width: 80px;
 }
 
 .btn-book-quick {
@@ -286,6 +298,87 @@
 
 /* My reservations */
 .my-reservations { margin-top: 0.5rem; }
+
+.res-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.res-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.res-filter-group--divider {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  padding-left: 1rem;
+  border-left: 2px solid #e2e8f0;
+}
+
+.res-date-input {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #0f172a;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.res-date-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+
+.res-user-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.res-user-filter-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+  white-space: nowrap;
+}
+
+.res-user-filter-select {
+  padding: 0.4rem 0.65rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #0f172a;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.res-user-filter-select:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+
+.res-user-filter-clear {
+  font-size: 0.78rem;
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.res-user-filter-clear:hover { background: #f3f4f6; color: #111; }
 .res-list { display: flex; flex-direction: column; gap: 0.75rem; }
 .res-card {
   background: #fff; border: 1px solid #e2e8f0; border-left: 4px solid;
