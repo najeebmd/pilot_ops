@@ -1,8 +1,29 @@
 node_modules/
 dist/
+server/dist/
+
+# SQLite
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
+
+# Environment
 .env
 .env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# Claude Code
 .claude/*
+
+# Notes
 PO_Notes.txt
