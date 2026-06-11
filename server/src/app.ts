@@ -14,7 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 // ── API Docs (/api/docs) ──────────────────────────────────────────────────────
-const openapiPath = path.join(__dirname, '../../openapi.yaml');
+const openapiPath = path.join(__dirname, '../openapi.yaml');
 const swaggerDoc  = yaml.load(fs.readFileSync(openapiPath, 'utf8')) as object;
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 
