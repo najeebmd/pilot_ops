@@ -1,0 +1,2011 @@
+openapi: 3.0.3
+
+info:
+  title: PilotOps API
+  description: |
+    REST API for the PilotOps flight school management platform.
+
+    ## Authentication
+    Most endpoints require a JWT bearer token obtained from `POST /api/auth/login`.
+    Include it in every protected request:
+    ```
+    Authorization: Bearer <token>
+    ```
+
+    ## Role-based access
+    | Symbol | Meaning |
+    |--------|---------|
+    | 🔓 | Public — no token required |
+    | 🔒 | Authenticated — any valid token |
+    | 🛡️ | Admin or Staff role required |
+  version: 1.0.0
+  contact:
+    name: PilotOps
+
+servers:
+  - url: http://localhost:3001/api
+    description: Local development server
+
+tags:
+  - name: Auth
+    description: Login and registration
+  - name: Profile
+    description: Current user's own profile and password
+  - name: Users
+    description: User management (Admin / Staff only)
+  - name: User Logins
+    description: Manage login credentials for a user (Admin / Staff only)
+  - name: User Roles
+    description: Assign and remove roles for a user (Admin / Staff only)
+  - name: Roles
+    description: Available system roles
+  - name: Aircraft
+    description: Fleet management
+  - name: Aircraft Schedule
+    description: Aircraft availability and maintenance blocks
+  - name: Instructors
+    description: Instructor rate and status records
+  - name: Instructor Schedule
+    description: Instructor availability blocks
+  - name: Reservations
+    description: Flight and instructor reservations
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Security schemes
+# ─────────────────────────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Reusable schemas
+  # ───────────────────────────────────────────────────────────────────────────
+  schemas:
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Resource not found
+      required: [message]
+
+    # ── Pagination wrapper ──────────────────────────────────────────────────
+    PaginationMeta:
+      type: object
+      properties:
+        total:
+          type: integer
+          example: 42
+        page:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 10
+      required: [total, page, pageSize]
+
+    # ── Enums ───────────────────────────────────────────────────────────────
+    RoleName:
+      type: string
+      enum: [STUDENT, GUEST, INSTRUCTOR, PILOT, STAFF, ADMIN, OTHER]
+
+    AircraftStatus:
+      type: string
+      enum: [READY, MAINTENANCE, NOT_AVAILABLE]
+
+    InstructorStatus:
+      type: string
+      enum: [ACTIVE, INACTIVE]
+
+    ReservationStatus:
+      type: string
+      enum: [RESERVED, COMPLETED, CANCELED]
+
+    ActivityType:
+      type: string
+      enum: [INSTRUCTION, OTHER, NOT_AVAILABLE]
+
+    AircraftActivityType:
+      type: string
+      enum: [MAINTENANCE, NOT_AVAILABLE, RESERVED, OTHER]
+
+    # ── Auth ────────────────────────────────────────────────────────────────
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 9
+        first_name:
+          type: string
+          example: Carlos
+        last_name:
+          type: string
+          example: Mendoza
+        email:
+          type: string
+          format: email
+          example: carlos.mendoza@example.com
+        username:
+          type: string
+          example: carlos_mendoza
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/RoleName'
+          example: [ADMIN]
+      required: [id, first_name, last_name, email, username, roles]
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT bearer token
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user:
+          $ref: '#/components/schemas/AuthUser'
+      required: [token, user]
+
+    # ── Role ────────────────────────────────────────────────────────────────
+    Role:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          $ref: '#/components/schemas/RoleName'
+        date_created:
+          type: string
+          format: date-time
+        date_updated:
+          type: string
+          format: date-time
+      required: [id, name, date_created, date_updated]
+
+    # ── User ────────────────────────────────────────────────────────────────
+    UserRole:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        role_id:
+          type: integer
+        role:
+          $ref: '#/components/schemas/Role'
+        date_created:
+          type: string
+          format: date-time
+        date_updated:
+          type: string
+          format: date-time
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        first_name:
+          type: string
+          example: James
+        last_name:
+          type: string
+          example: Mitchell
+        email:
+          type: string
+          format: email
+          example: james.mitchell@example.com
+        phone:
+          type: string
+          nullable: true
+          example: "+1-202-555-0101"
+        date_of_birth:
+          type: string
+          format: date-time
+          nullable: true
+        address_line1:
+          type: string
+          nullable: true
+        address_line2:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        state:
+          type: string
+          nullable: true
+        country:
+          type: string
+          nullable: true
+        postal_code:
+          type: string
+          nullable: true
+        roles:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserRole'
+        date_created:
+          type: string
+          format: date-time
+        date_updated:
+          type: string
+          format: date-time
+      required: [id, first_name, last_name, email, date_created, date_updated]
+
+    UserBody:
+      type: object
+      properties:
+        first_name:
+          type: string
+          example: James
+        last_name:
+          type: string
+          example: Mitchell
+        email:
+          type: string
+          format: email
+          example: james.mitchell@example.com
+        phone:
+          type: string
+          example: "+1-202-555-0101"
+        date_of_birth:
+          type: string
+          format: date-time
+          example: "1985-03-14T00:00:00.000Z"
+        address_line1:
+          type: string
+        address_line2:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        country:
+          type: string
+        postal_code:
+          type: string
+      required: [first_name, last_name, email]
+
+    UserLogin:
+      type: object
+      description: Login credentials record (password is never returned)
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        username:
+          type: string
+          example: james_mitchell
+        date_created:
+          type: string
+          format: date-time
+        date_updated:
+          type: string
+          format: date-time
+      required: [id, user_id, username, date_created, date_updated]
+
+    # ── Aircraft ────────────────────────────────────────────────────────────
+    Aircraft:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        tail_number:
+          type: string
+          example: N1234A
+        serial_number:
+          type: string
+          example: "17281234"
+        make:
+          type: string
+          example: Cessna
+        model:
+          type: string
+          example: 172S Skyhawk
+        year_built:
+          type: integer
+          example: 2018
+        flight_hours:
+          type: number
+          format: float
+          example: 1240.5
+        seats:
+          type: integer
+          nullable: true
+          example: 4
+        fuel_capacity:
+          type: number
+          format: float
+          nullable: true
+          example: 56.0
+        weight:
+          type: number
+          format: float
+          nullable: true
+          example: 2550.0
+        status:
+          $ref: '#/components/schemas/AircraftStatus'
+        rental_rate:
+          type: number
+          format: float
+          nullable: true
+          example: 165.0
+        next_inspection_date:
+          type: string
+          format: date-time
+          nullable: true
+        date_created:
+          type: string
+          format: date-time
+        date_updated:
+          type: string
+          format: date-time
+      required: [id, tail_number, serial_number, make, model, year_built, flight_hours, status, date_created, date_updated]
+
+    AircraftBody:
+      type: object
+      properties:
+        tail_number:
+          type: string
+          example: N1234A
+          description: Converted to uppercase automatically
+        serial_number:
+          type: string
+          example: "17281234"
+        make:
+          type: string
+          example: Cessna
+        model:
+          type: string
+          example: 172S Skyhawk
+        year_built:
+          type: integer
+          example: 2018
+        flight_hours:
+          type: number
+          format: float
+          example: 0
+          default: 0
+        seats:
+          type: integer
+          example: 4
+        fuel_capacity:
+          type: number
+          format: float
+          example: 56.0
+        weight:
+          type: number
+          format: float
+          example: 2550.0
+        status:
+          $ref: '#/components/schemas/AircraftStatus'
+        rental_rate:
+          type: number
+          format: float
+          example: 165.0
+        next_inspection_date:
+          type: string
+          format: date-time
+          example: "2026-09-15T00:00:00.000Z"
+      required: [tail_number, serial_number, make, model, year_built]
+
+    # ── Aircraft Schedule ───────────────────────────────────────────────────
+    AircraftScheduleEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        aircraft_id:
+          type: integer
+          example: 1
+        date_start:
+          type: string
+          format: date-time
+        date_end:
+          type: string
+          format: date-time
+        activity_type:
+          $ref: '#/components/schemas/AircraftActivityType'
+        reservation_id:
+          type: integer
+          nullable: true
+          description: Set when auto-created from a reservation. Entry cannot be edited or deleted directly.
+        aircraft:
+          type: object
+          properties:
+            id:
+              type: integer
+            tail_number:
+              type: string
+            make:
+              type: string
+            model:
+              type: string
+        date_created:
+          type: string
+          format: date-time
+        date_updated:
+          type: string
+          format: date-time
+      required: [id, aircraft_id, date_start, date_end, activity_type, date_created, date_updated]
+
+    AircraftScheduleBody:
+      type: object
+      properties:
+        aircraft_id:
+          type: integer
+          example: 1
+        date_start:
+          type: string
+          format: date-time
+          example: "2026-07-01T09:00:00.000Z"
+        date_end:
+          type: string
+          format: date-time
+          example: "2026-07-01T11:00:00.000Z"
+        activity_type:
+          $ref: '#/components/schemas/AircraftActivityType'
+      required: [aircraft_id, date_start, date_end, activity_type]
+
+    # ── Instructor ──────────────────────────────────────────────────────────
+    InstructorSummary:
+      type: object
+      description: Embedded instructor info on schedule and reservation objects
+      properties:
+        id:
+          type: integer
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+
+    Instructor:
+      type: object
+      description: Instructor rate and status record
+      properties:
+        id:
+          type: integer
+          example: 1
+        instructor_id:
+          type: integer
+          description: Foreign key to User.id
+          example: 6
+        regular_rate:
+          type: number
+          format: float
+          description: Hourly rate in USD
+          example: 95.0
+        status:
+          $ref: '#/components/schemas/InstructorStatus'
+        user:
+          $ref: '#/components/schemas/InstructorSummary'
+        date_created:
+          type: string
+          format: date-time
+        date_updated:
+          type: string
+          format: date-time
+      required: [id, instructor_id, regular_rate, status, user, date_created, date_updated]
+
+    # ── Instructor Schedule ─────────────────────────────────────────────────
+    InstructorScheduleEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        instructor_id:
+          type: integer
+          example: 6
+        date_start:
+          type: string
+          format: date-time
+        date_end:
+          type: string
+          format: date-time
+        activity_type:
+          $ref: '#/components/schemas/ActivityType'
+        reservation_id:
+          type: integer
+          nullable: true
+          description: Set when auto-created from a reservation.
+        instructor:
+          $ref: '#/components/schemas/InstructorSummary'
+        date_created:
+          type: string
+          format: date-time
+        date_updated:
+          type: string
+          format: date-time
+      required: [id, instructor_id, date_start, date_end, activity_type, date_created, date_updated]
+
+    InstructorScheduleBody:
+      type: object
+      properties:
+        instructor_id:
+          type: integer
+          example: 6
+        date_start:
+          type: string
+          format: date-time
+          example: "2026-07-01T09:00:00.000Z"
+        date_end:
+          type: string
+          format: date-time
+          example: "2026-07-01T11:00:00.000Z"
+        activity_type:
+          $ref: '#/components/schemas/ActivityType'
+      required: [instructor_id, date_start, date_end, activity_type]
+
+    # ── Reservation ─────────────────────────────────────────────────────────
+    ReservationUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        first_name:
+          type: string
+        last_name:
+          type: string
+        email:
+          type: string
+          format: email
+
+    ReservationAircraft:
+      type: object
+      properties:
+        id:
+          type: integer
+        tail_number:
+          type: string
+        make:
+          type: string
+        model:
+          type: string
+
+    Reservation:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        user_id:
+          type: integer
+          example: 1
+        aircraft_id:
+          type: integer
+          nullable: true
+          example: 1
+        instructor_id:
+          type: integer
+          nullable: true
+          example: 6
+        date_start:
+          type: string
+          format: date-time
+          example: "2026-07-01T09:00:00.000Z"
+        date_end:
+          type: string
+          format: date-time
+          example: "2026-07-01T11:00:00.000Z"
+        status:
+          $ref: '#/components/schemas/ReservationStatus'
+        user:
+          $ref: '#/components/schemas/ReservationUser'
+        aircraft:
+          allOf:
+            - $ref: '#/components/schemas/ReservationAircraft'
+          nullable: true
+        instructor:
+          allOf:
+            - $ref: '#/components/schemas/ReservationUser'
+          nullable: true
+        instructor_schedule:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+        aircraft_schedule:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+        date_created:
+          type: string
+          format: date-time
+        date_updated:
+          type: string
+          format: date-time
+      required: [id, user_id, date_start, date_end, status, date_created, date_updated]
+
+    ReservationBody:
+      type: object
+      properties:
+        user_id:
+          type: integer
+          example: 1
+        aircraft_id:
+          type: integer
+          nullable: true
+          example: 1
+        instructor_id:
+          type: integer
+          nullable: true
+          example: 6
+        date_start:
+          type: string
+          format: date-time
+          example: "2026-07-01T09:00:00.000Z"
+        date_end:
+          type: string
+          format: date-time
+          example: "2026-07-01T11:00:00.000Z"
+        status:
+          $ref: '#/components/schemas/ReservationStatus'
+      required: [user_id, date_start, date_end]
+      description: At least one of aircraft_id or instructor_id must be provided.
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Reusable parameters
+  # ───────────────────────────────────────────────────────────────────────────
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSizeParam:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+    SortOrderParam:
+      name: sortOrder
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+    DateFromParam:
+      name: date_from
+      in: query
+      description: Overlap window start (ISO 8601). Returns entries whose range overlaps this window.
+      schema:
+        type: string
+        format: date-time
+    DateToParam:
+      name: date_to
+      in: query
+      description: Overlap window end (ISO 8601).
+      schema:
+        type: string
+        format: date-time
+
+  # ───────────────────────────────────────────────────────────────────────────
+  # Reusable responses
+  # ───────────────────────────────────────────────────────────────────────────
+  responses:
+    Unauthorized:
+      description: Missing or invalid JWT token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Insufficient role permissions
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    BadRequest:
+      description: Validation error — missing or invalid fields
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Conflict — duplicate record or scheduling overlap
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NoContent:
+      description: Deleted successfully (no body)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Paths
+# ─────────────────────────────────────────────────────────────────────────────
+paths:
+
+  # ── Auth ──────────────────────────────────────────────────────────────────
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login 🔓
+      description: Authenticate with username and password. Returns a JWT and the authenticated user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: carlos_mendoza
+                password:
+                  type: string
+                  format: password
+                  example: welcome123
+              required: [username, password]
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register 🔓
+      description: |
+        Create a new account. Automatically assigns the `STUDENT` role.
+        Returns a JWT and the new user — no separate login step required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                first_name:
+                  type: string
+                  example: Alice
+                last_name:
+                  type: string
+                  example: Walker
+                email:
+                  type: string
+                  format: email
+                  example: alice.walker@example.com
+                username:
+                  type: string
+                  example: alice_walker
+                password:
+                  type: string
+                  format: password
+                  example: SecurePass1!
+              required: [first_name, last_name, email, username, password]
+      responses:
+        '201':
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  # ── Profile ───────────────────────────────────────────────────────────────
+  /profile:
+    get:
+      tags: [Profile]
+      summary: Get own profile 🔒
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Full profile with roles and login username
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    put:
+      tags: [Profile]
+      summary: Update own profile 🔒
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserBody'
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /profile/password:
+    put:
+      tags: [Profile]
+      summary: Change own password 🔒
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                current_password:
+                  type: string
+                  format: password
+                new_password:
+                  type: string
+                  format: password
+                  minLength: 8
+              required: [current_password, new_password]
+      responses:
+        '200':
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password updated successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: Current password is incorrect or token is invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Users ─────────────────────────────────────────────────────────────────
+  /users:
+    get:
+      tags: [Users]
+      summary: List users 🛡️
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [first_name, last_name, email, phone, city, country, date_created, date_updated]
+            default: date_created
+        - $ref: '#/components/parameters/SortOrderParam'
+        - name: role
+          in: query
+          description: Filter by role name
+          schema:
+            $ref: '#/components/schemas/RoleName'
+        - name: search
+          in: query
+          description: Full-text search across first_name, last_name, and email
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginationMeta'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [Users]
+      summary: Create user 🛡️
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserBody'
+      responses:
+        '201':
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /users/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [Users]
+      summary: Get user by ID 🛡️
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Users]
+      summary: Update user 🛡️
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/UserBody'
+                - type: object
+                  properties:
+                    role_ids:
+                      type: array
+                      items:
+                        type: integer
+                      description: When provided, replaces all existing role assignments for this user.
+                      example: [1, 3]
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Users]
+      summary: Delete user 🛡️
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── User Logins ───────────────────────────────────────────────────────────
+  /users/{userId}/login:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [User Logins]
+      summary: Get login record 🛡️
+      description: Returns the login record without the password hash.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Login record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLogin'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [User Logins]
+      summary: Create login credentials 🛡️
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: james_mitchell
+                password:
+                  type: string
+                  format: password
+                  example: welcome123
+              required: [username, password]
+      responses:
+        '201':
+          description: Login created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLogin'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [User Logins]
+      summary: Update login credentials 🛡️
+      description: Update username and/or password for a user.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: james_m
+                password:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Updated login record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserLogin'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [User Logins]
+      summary: Remove login access 🛡️
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/{userId}/login/reset:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      tags: [User Logins]
+      summary: Reset user password 🛡️
+      description: Admin/Staff can reset any user's password without knowing the current one.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                new_password:
+                  type: string
+                  format: password
+                  minLength: 8
+                  example: NewSecure99!
+              required: [new_password]
+      responses:
+        '200':
+          description: Password reset
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Password reset successfully
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── User Roles ────────────────────────────────────────────────────────────
+  /users/{userId}/roles:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [User Roles]
+      summary: List roles for a user 🛡️
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of role assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserRole'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+    post:
+      tags: [User Roles]
+      summary: Assign a role to a user 🛡️
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role_id:
+                  type: integer
+                  example: 3
+              required: [role_id]
+      responses:
+        '201':
+          description: Role assigned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRole'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /users/{userId}/roles/{roleId}:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+      - name: roleId
+        in: path
+        required: true
+        schema:
+          type: integer
+    delete:
+      tags: [User Roles]
+      summary: Remove a role from a user 🛡️
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Roles ─────────────────────────────────────────────────────────────────
+  /roles:
+    get:
+      tags: [Roles]
+      summary: List all roles 🔓
+      responses:
+        '200':
+          description: All roles ordered by name
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Role'
+
+  /roles/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      tags: [Roles]
+      summary: Get role by ID 🔓
+      responses:
+        '200':
+          description: Role record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Role'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Aircraft ──────────────────────────────────────────────────────────────
+  /aircraft:
+    get:
+      tags: [Aircraft]
+      summary: List aircraft 🔓
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [tail_number, serial_number, make, model, year_built, flight_hours, seats, status, rental_rate, next_inspection_date, date_created, date_updated]
+            default: date_created
+        - $ref: '#/components/parameters/SortOrderParam'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/AircraftStatus'
+      responses:
+        '200':
+          description: Paginated aircraft list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginationMeta'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Aircraft'
+
+    post:
+      tags: [Aircraft]
+      summary: Add aircraft 🔓
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AircraftBody'
+      responses:
+        '201':
+          description: Aircraft created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Aircraft'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /aircraft/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [Aircraft]
+      summary: Get aircraft by ID 🔓
+      responses:
+        '200':
+          description: Aircraft record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Aircraft'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Aircraft]
+      summary: Update aircraft 🔓
+      description: All body fields are optional — only provided fields are updated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AircraftBody'
+      responses:
+        '200':
+          description: Updated aircraft
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Aircraft'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Aircraft]
+      summary: Delete aircraft 🔓
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Aircraft Schedule ─────────────────────────────────────────────────────
+  /aircraft-schedule:
+    get:
+      tags: [Aircraft Schedule]
+      summary: List aircraft schedule entries 🔓
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [date_start, date_end, activity_type, date_created]
+            default: date_start
+        - $ref: '#/components/parameters/SortOrderParam'
+        - name: aircraft_id
+          in: query
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/DateFromParam'
+        - $ref: '#/components/parameters/DateToParam'
+      responses:
+        '200':
+          description: Paginated schedule entries
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginationMeta'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/AircraftScheduleEntry'
+
+    post:
+      tags: [Aircraft Schedule]
+      summary: Create schedule entry 🔓
+      description: Returns 409 if the time slot overlaps an existing entry for the same aircraft.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AircraftScheduleBody'
+      responses:
+        '201':
+          description: Entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AircraftScheduleEntry'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /aircraft-schedule/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [Aircraft Schedule]
+      summary: Get schedule entry by ID 🔓
+      responses:
+        '200':
+          description: Schedule entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AircraftScheduleEntry'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Aircraft Schedule]
+      summary: Update schedule entry 🔓
+      description: |
+        Returns 400 if the entry was auto-created from a reservation
+        (edit the reservation instead).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AircraftScheduleBody'
+      responses:
+        '200':
+          description: Updated entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AircraftScheduleEntry'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    delete:
+      tags: [Aircraft Schedule]
+      summary: Delete schedule entry 🔓
+      description: |
+        Returns 400 if the entry is linked to a reservation
+        (cancel the reservation instead).
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Instructors ───────────────────────────────────────────────────────────
+  /instructor-rates:
+    get:
+      tags: [Instructors]
+      summary: List all instructors 🔒
+      description: Returns all instructor rate/status records ordered by first name. Accessible to any authenticated user.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Array of instructor records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Instructor'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [Instructors]
+      summary: Create instructor record 🛡️
+      description: The referenced user must already have the `INSTRUCTOR` role.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                instructor_id:
+                  type: integer
+                  description: User ID of the instructor
+                  example: 6
+                regular_rate:
+                  type: number
+                  format: float
+                  minimum: 0
+                  example: 95.0
+              required: [instructor_id, regular_rate]
+      responses:
+        '201':
+          description: Instructor record created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instructor'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          description: User not found or does not have the INSTRUCTOR role
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /instructor-rates/{instructorId}:
+    parameters:
+      - name: instructorId
+        in: path
+        required: true
+        description: User ID of the instructor
+        schema:
+          type: integer
+
+    get:
+      tags: [Instructors]
+      summary: Get instructor record 🔒
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Instructor record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instructor'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Instructors]
+      summary: Update instructor rate or status 🛡️
+      description: At least one of `regular_rate` or `status` must be provided.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                regular_rate:
+                  type: number
+                  format: float
+                  minimum: 0
+                  example: 110.0
+                status:
+                  $ref: '#/components/schemas/InstructorStatus'
+      responses:
+        '200':
+          description: Updated instructor record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Instructor'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Instructors]
+      summary: Delete instructor record 🛡️
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Instructor Schedule ───────────────────────────────────────────────────
+  /instructor-schedule:
+    get:
+      tags: [Instructor Schedule]
+      summary: List instructor schedule entries 🔓
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [date_start, date_end, activity_type, date_created]
+            default: date_start
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - name: instructor_id
+          in: query
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/DateFromParam'
+        - $ref: '#/components/parameters/DateToParam'
+      responses:
+        '200':
+          description: Paginated schedule entries
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginationMeta'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/InstructorScheduleEntry'
+
+    post:
+      tags: [Instructor Schedule]
+      summary: Create schedule entry 🔓
+      description: |
+        Returns 409 if the slot overlaps an existing entry for the same instructor.
+        The `INSTRUCTION` activity type is reserved for entries auto-created from reservations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstructorScheduleBody'
+      responses:
+        '201':
+          description: Entry created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructorScheduleEntry'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          description: User not found or not an instructor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /instructor-schedule/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [Instructor Schedule]
+      summary: Get schedule entry by ID 🔓
+      responses:
+        '200':
+          description: Schedule entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructorScheduleEntry'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Instructor Schedule]
+      summary: Update schedule entry 🔓
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InstructorScheduleBody'
+      responses:
+        '200':
+          description: Updated entry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstructorScheduleEntry'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    delete:
+      tags: [Instructor Schedule]
+      summary: Delete schedule entry 🔓
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── Reservations ──────────────────────────────────────────────────────────
+  /reservations:
+    get:
+      tags: [Reservations]
+      summary: List reservations 🔓
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/PageSizeParam'
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [date_start, date_end, status, date_created, date_updated]
+            default: date_start
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+        - name: user_id
+          in: query
+          description: Filter by student/pilot
+          schema:
+            type: integer
+        - name: aircraft_id
+          in: query
+          schema:
+            type: integer
+        - name: instructor_id
+          in: query
+          schema:
+            type: integer
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ReservationStatus'
+        - $ref: '#/components/parameters/DateFromParam'
+        - $ref: '#/components/parameters/DateToParam'
+        - name: start_from
+          in: query
+          description: |
+            Filter reservations whose `date_start` is on or after this value.
+            Use this (together with `start_to`) for list-view date range filters.
+            Independent of the overlap-based `date_from`/`date_to` params.
+          schema:
+            type: string
+            format: date-time
+        - name: start_to
+          in: query
+          description: Filter reservations whose `date_start` is on or before this value.
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Paginated reservations with embedded user, aircraft, and instructor info
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginationMeta'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Reservation'
+
+    post:
+      tags: [Reservations]
+      summary: Create reservation 🔓
+      description: |
+        **Business rules:**
+        - `user_id` must belong to a user with `STUDENT`, `PILOT`, or `INSTRUCTOR` role.
+        - At least one of `aircraft_id` or `instructor_id` must be provided.
+        - Reserving an aircraft without an instructor requires the `PILOT` role.
+        - Returns 409 if the aircraft or instructor has a conflicting booking.
+        - Auto-creates an `InstructorSchedule` entry (type `INSTRUCTION`) and/or an
+          `AircraftSchedule` entry (type `RESERVED`) when status is `RESERVED`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationBody'
+      responses:
+        '201':
+          description: Reservation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          description: User does not have PILOT role for solo aircraft reservation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          description: User or instructor role validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /reservations/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+
+    get:
+      tags: [Reservations]
+      summary: Get reservation by ID 🔓
+      responses:
+        '200':
+          description: Reservation record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Reservations]
+      summary: Update reservation 🔓
+      description: |
+        All fields are optional — only provided fields are updated.
+        Setting `status` to `CANCELED` automatically deletes the linked
+        `InstructorSchedule` and `AircraftSchedule` entries.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReservationBody'
+      responses:
+        '200':
+          description: Updated reservation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reservation'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          description: Role validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Reservations]
+      summary: Delete reservation 🔓
+      description: |
+        Permanently deletes the reservation. Linked `InstructorSchedule` and
+        `AircraftSchedule` entries are removed automatically via cascade.
+      responses:
+        '204':
+          $ref: '#/components/responses/NoContent'
+        '404':
+          $ref: '#/components/responses/NotFound'
