@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+import yaml from 'js-yaml';
+import swaggerUi from 'swagger-ui-express';
 
 dotenv.config();
 
@@ -8,6 +12,11 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// ── API Docs (/api/docs) ──────────────────────────────────────────────────────
+const openapiPath = path.join(__dirname, '../../openapi.yaml');
+const swaggerDoc  = yaml.load(fs.readFileSync(openapiPath, 'utf8')) as object;
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });

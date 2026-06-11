@@ -101,6 +101,14 @@ npm run dev:server
 npm run dev:client
 ```
 
+Once the server is running, interactive API documentation is available at:
+
+```
+http://localhost:3001/api/docs
+```
+
+The Swagger UI is served directly from `server/openapi.yaml` and lets you browse every endpoint, inspect request/response schemas, and execute requests against the live server.
+
 ### Useful scripts
 
 | Script | Description |
@@ -366,6 +374,10 @@ erDiagram
 ---
 
 ## API Reference
+
+Interactive Swagger UI: **[http://localhost:3001/api/docs](http://localhost:3001/api/docs)** (requires the dev server to be running)
+
+The full machine-readable spec is at `server/openapi.yaml` (OpenAPI 3.0.3).
 
 All endpoints are prefixed with `/api`. Endpoints marked **🔒** require a valid JWT in the `Authorization: Bearer <token>` header. Endpoints marked **🛡️** additionally require the `ADMIN` or `STAFF` role.
 
