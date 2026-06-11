@@ -238,118 +238,118 @@ Seven roles are supported. A user can hold multiple roles simultaneously.
 ```mermaid
 erDiagram
     User {
-        Int     id              PK
-        String  first_name
-        String  last_name
-        String  email           UK
-        String  phone
+        Int      id              PK
+        String   first_name
+        String   last_name
+        String   email           UK
+        String   phone
         DateTime date_of_birth
-        String  address_line1
-        String  address_line2
-        String  city
-        String  state
-        String  country
-        String  postal_code
+        String   address_line1
+        String   address_line2
+        String   city
+        String   state
+        String   country
+        String   postal_code
         DateTime date_created
         DateTime date_updated
     }
 
     Role {
-        Int      id    PK
-        RoleName name  UK
+        Int      id           PK
+        String   name         UK
         DateTime date_created
         DateTime date_updated
     }
 
     UserLogin {
-        Int    id       PK
-        Int    user_id  FK  UK
-        String username UK
-        String password
+        Int      id           PK
+        Int      user_id      FK "unique"
+        String   username     UK
+        String   password
         DateTime date_created
         DateTime date_updated
     }
 
     UserRole {
-        Int id       PK
-        Int user_id  FK
-        Int role_id  FK
+        Int      id           PK
+        Int      user_id      FK
+        Int      role_id      FK
         DateTime date_created
         DateTime date_updated
     }
 
     Aircraft {
-        Int    id                   PK
-        String tail_number          UK
-        String serial_number        UK
-        String make
-        String model
-        Int    year_built
-        Float  flight_hours
-        Int    seats
-        Float  fuel_capacity
-        Float  weight
-        AircraftStatus status
-        Float  rental_rate
+        Int      id                   PK
+        String   tail_number          UK
+        String   serial_number        UK
+        String   make
+        String   model
+        Int      year_built
+        Float    flight_hours
+        Int      seats
+        Float    fuel_capacity
+        Float    weight
+        String   status
+        Float    rental_rate
         DateTime next_inspection_date
         DateTime date_created
         DateTime date_updated
     }
 
     Instructor {
-        Int             id             PK
-        Int             instructor_id  FK  UK
-        Float           regular_rate
-        InstructorStatus status
-        DateTime        date_created
-        DateTime        date_updated
+        Int      id             PK
+        Int      instructor_id  FK "unique"
+        Float    regular_rate
+        String   status
+        DateTime date_created
+        DateTime date_updated
     }
 
     Reservation {
-        Int               id            PK
-        Int               user_id       FK
-        Int               aircraft_id   FK
-        Int               instructor_id FK
-        DateTime          date_start
-        DateTime          date_end
-        ReservationStatus status
-        DateTime          date_created
-        DateTime          date_updated
+        Int      id            PK
+        Int      user_id       FK
+        Int      aircraft_id   FK
+        Int      instructor_id FK
+        DateTime date_start
+        DateTime date_end
+        String   status
+        DateTime date_created
+        DateTime date_updated
     }
 
     InstructorSchedule {
-        Int          id             PK
-        Int          instructor_id  FK
-        DateTime     date_start
-        DateTime     date_end
-        ActivityType activity_type
-        Int          reservation_id FK  UK
-        DateTime     date_created
-        DateTime     date_updated
+        Int      id             PK
+        Int      instructor_id  FK
+        DateTime date_start
+        DateTime date_end
+        String   activity_type
+        Int      reservation_id FK "unique"
+        DateTime date_created
+        DateTime date_updated
     }
 
     AircraftSchedule {
-        Int                  id             PK
-        Int                  aircraft_id    FK
-        DateTime             date_start
-        DateTime             date_end
-        AircraftActivityType activity_type
-        Int                  reservation_id FK  UK
-        DateTime             date_created
-        DateTime             date_updated
+        Int      id             PK
+        Int      aircraft_id    FK
+        DateTime date_start
+        DateTime date_end
+        String   activity_type
+        Int      reservation_id FK "unique"
+        DateTime date_created
+        DateTime date_updated
     }
 
-    User         ||--o| UserLogin         : "has login"
-    User         ||--o{ UserRole          : "assigned roles"
-    Role         ||--o{ UserRole          : "held by users"
-    User         ||--o| Instructor        : "instructor profile"
-    User         ||--o{ Reservation       : "books (student)"
-    User         ||--o{ Reservation       : "teaches (instructor)"
-    User         ||--o{ InstructorSchedule: "schedule entries"
-    Aircraft     ||--o{ Reservation       : "reserved in"
-    Aircraft     ||--o{ AircraftSchedule  : "schedule entries"
-    Reservation  ||--o| InstructorSchedule: "auto-creates"
-    Reservation  ||--o| AircraftSchedule  : "auto-creates"
+    User         ||--o| UserLogin          : "has login"
+    User         ||--o{ UserRole           : "assigned roles"
+    Role         ||--o{ UserRole           : "held by users"
+    User         ||--o| Instructor         : "instructor profile"
+    User         ||--o{ Reservation        : "books as student"
+    User         ||--o{ Reservation        : "teaches as instructor"
+    User         ||--o{ InstructorSchedule : "schedule entries"
+    Aircraft     ||--o{ Reservation        : "reserved in"
+    Aircraft     ||--o{ AircraftSchedule   : "schedule entries"
+    Reservation  ||--o| InstructorSchedule : "auto-creates"
+    Reservation  ||--o| AircraftSchedule   : "auto-creates"
 ```
 
 ### Enum values
